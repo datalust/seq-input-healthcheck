@@ -1,3 +1,17 @@
+Seq.Input.HealthCheck is Copyright (c) 2019 Datalust Pty Ltd and Contributors, 
+provided subject to the Apache License, Version 2.0.
+
+The Seq.Input.HealthCheck NuGet package includes binary components licensed by
+their respective copyright owners, including but not limited to:
+
+ * .NET CoreFX components (System.*.dll) - MIT License,
+   https://github.com/dotnet/corefx/blob/master/LICENSE.TXT
+
+ * Microsoft .NET libraries (System.*.dll) - MS-.NET-Library License,
+   https://dotnet.microsoft.com/dotnet_library_license.htm
+
+---
+
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/

@@ -1,2 +1,2 @@
-# seq-input-healthcheck
-Periodically GET an HTTP resource and write response metrics to Seq
+# seq-input-rabbitmq
+An example Seq custom input that pulls events from HealthCheck
