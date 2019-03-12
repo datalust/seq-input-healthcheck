@@ -29,12 +29,14 @@ namespace Seq.Input.HealthCheck
             {
                 while (!cancel.IsCancellationRequested)
                 {
-
                     var result = await healthCheck.CheckNow(cancel);
                     reporter.Report(result);
 
                     if (result.Elapsed < interval.TotalMilliseconds)
-                        await Task.Delay((int)(interval.TotalMilliseconds - result.Elapsed), cancel);
+                    {
+                        var delay = (int) (interval.TotalMilliseconds - result.Elapsed);
+                        await Task.Delay(delay, cancel);
+                    }
                 }
             }
             catch (OperationCanceledException)

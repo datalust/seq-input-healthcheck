@@ -7,11 +7,7 @@ namespace Seq.Input.HealthCheck
     class HealthCheckReporter
     {
         readonly TextWriter _output;
-
-        readonly JsonSerializer _serializer = JsonSerializer.Create(
-            new JsonSerializerSettings {
-                DateFormatHandling = DateFormatHandling.IsoDateFormat
-            });
+        readonly JsonSerializer _serializer = JsonSerializer.Create();
 
         public HealthCheckReporter(TextWriter output)
         {

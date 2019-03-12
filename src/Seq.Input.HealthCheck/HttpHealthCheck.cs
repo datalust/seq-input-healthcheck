@@ -15,7 +15,7 @@ namespace Seq.Input.HealthCheck
         readonly HttpClient _httpClient;
         readonly byte[] _buffer = new byte[2048];
 
-        static UTF8Encoding _forgivingEncoding = new UTF8Encoding(false, false);
+        static readonly UTF8Encoding ForgivingEncoding = new UTF8Encoding(false, false);
 
         public HttpHealthCheck(string title, string targetUrl)
         {
@@ -74,7 +74,7 @@ namespace Seq.Input.HealthCheck
         async Task<string> DownloadContent(Stream body)
         {
             var read = await body.ReadAsync(_buffer, 0, _buffer.Length);
-            var initial = _forgivingEncoding.GetString(_buffer, 0, Math.Min(read, 16));
+            var initial = ForgivingEncoding.GetString(_buffer, 0, Math.Min(read, 16));
             while (read > 0)
             {
                 read = await body.ReadAsync(_buffer, 0, _buffer.Length);
