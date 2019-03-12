@@ -10,7 +10,7 @@ namespace Seq.Input.HealthCheck
         public DateTime UtcTimestamp { get; }
 
         [JsonProperty("@x", DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public Exception Exception { get; }
+        public string Exception { get; }
 
         [JsonProperty("@mt")]
         public string MessageTemplate { get; } =
@@ -62,7 +62,7 @@ namespace Seq.Input.HealthCheck
             ContentType = contentType;
             ContentLength = contentLength;
             InitialContent = initialContent;
-            Exception = exception;
+            Exception = exception?.ToString();
         }
     }
 }
