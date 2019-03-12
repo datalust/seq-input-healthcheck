@@ -8,7 +8,6 @@
     <PackageTags>seq-app</PackageTags>
     <PackageIconUrl>https://raw.githubusercontent.com/datalust/sqelf/master/asset/seq-input-gelf.png</PackageIconUrl>
     <PackageProjectUrl>https://github.com/datalust/seq-input-healthcheck</PackageProjectUrl>
-    <PackageLicenseUrl>https://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
     <RepositoryUrl>https://github.com/datalust/seq-input-healthcheck</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>

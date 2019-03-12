@@ -22,10 +22,10 @@ namespace Seq.Input.HealthCheck
         public string Method { get; }
         public string TargetUrl { get; }
         public string Outcome { get; }
-        public int? Elapsed { get; }
+        public double Elapsed { get; }
         public int? StatusCode { get; }
         public string ContentType { get; }
-        public int? ContentLength { get; }
+        public long? ContentLength { get; }
         public string InitialContent { get; }
 
         public HealthCheckResult(
@@ -35,10 +35,10 @@ namespace Seq.Input.HealthCheck
             string targetUrl,            
             string outcome,
             string level,
-            int? elapsed,
+            double elapsed,
             int? statusCode,
             string contentType,
-            int? contentLength,
+            long? contentLength,
             string initialContent,
             Exception exception)
         {

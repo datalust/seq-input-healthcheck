@@ -8,7 +8,8 @@ namespace Seq.Input.HealthCheck
         Description = "Periodically GET an HTTP resource and publish response metrics to Seq.")]
     public class HealthCheckInput : SeqApp, IPublishJson, IDisposable
     {
-        HealthCheck _healthCheck;
+        HealthCheckTask _healthCheckTask;
+        HttpHealthCheck _httpHealthCheck;
 
         [SeqAppSetting(
             DisplayName = "Target URL",
@@ -23,20 +24,24 @@ namespace Seq.Input.HealthCheck
 
         public void Start(TextWriter inputWriter)
         {
-            _healthCheck = new HealthCheck(
-                TargetUrl,
+            _httpHealthCheck = new HttpHealthCheck(App.Title, TargetUrl);
+
+            _healthCheckTask = new HealthCheckTask(
+                _httpHealthCheck,
                 TimeSpan.FromSeconds(IntervalSeconds),
-                new HealthCheckReporter(inputWriter));
+                new HealthCheckReporter(inputWriter),
+                Log);
         }
 
         public void Stop()
         {
-            _healthCheck.Stop();
+            _healthCheckTask.Stop();
         }
 
         public void Dispose()
         {
-            _healthCheck?.Dispose();
+            _healthCheckTask?.Dispose();
+            _httpHealthCheck?.Dispose();
         }
     }
 }
