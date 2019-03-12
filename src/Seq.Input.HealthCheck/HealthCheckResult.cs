@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using Newtonsoft.Json;
 
 namespace Seq.Input.HealthCheck
@@ -17,6 +18,9 @@ namespace Seq.Input.HealthCheck
 
         [JsonProperty("@l", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string Level { get; }
+
+        [JsonProperty("@r")]
+        public string[] Renderings => new[] {Elapsed.ToString("0.000", CultureInfo.InvariantCulture)};
 
         public string HealthCheckTitle { get; }
         public string Method { get; }

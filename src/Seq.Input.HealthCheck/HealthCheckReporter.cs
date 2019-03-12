@@ -23,6 +23,7 @@ namespace Seq.Input.HealthCheck
             if (result == null) throw new ArgumentNullException(nameof(result));
 
             _serializer.Serialize(_output, result);
+            _output.WriteLine();
             _output.Flush();
         }
     }

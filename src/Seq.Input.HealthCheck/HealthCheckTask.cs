@@ -37,6 +37,10 @@ namespace Seq.Input.HealthCheck
                         await Task.Delay((int)(interval.TotalMilliseconds - result.Elapsed), cancel);
                 }
             }
+            catch (OperationCanceledException)
+            {
+                // Unloading
+            }
             catch (Exception ex)
             {
                 diagnosticLog.Fatal(ex, "The health check task threw an unhandled exception");
