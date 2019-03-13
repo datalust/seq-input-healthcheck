@@ -9,7 +9,7 @@ Periodically GET an HTTP resource and write response metrics to Seq. These can t
 1. The app requires Seq 5.1 or newer
 2. Navigate to _Settings_ > _Apps_ and select _Install from NuGet_
 3. Install the app with package id _Seq.Input.HealthCheck_
-4. Back on the _Apps_ screen, choose _Start new instance_
+4. Back on the _Apps_ screen, choose _Add Instance_
 5. Enter a title for the health check; events raised by the health check will be tagged with this
 6. Enter a URL to probe
    - the URL must respond to `GET` requests

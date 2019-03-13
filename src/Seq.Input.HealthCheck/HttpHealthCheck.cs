@@ -21,7 +21,10 @@ namespace Seq.Input.HealthCheck
         {
             _title = title ?? throw new ArgumentNullException(nameof(title));
             _targetUrl = targetUrl ?? throw new ArgumentNullException(nameof(targetUrl));
-            _httpClient = new HttpClient();
+
+            var handler = new HttpClientHandler {AllowAutoRedirect = false};
+            _httpClient = new HttpClient(handler);
+            _httpClient.DefaultRequestHeaders.Connection.Add("Close");
         }
 
         public async Task<HealthCheckResult> CheckNow(CancellationToken cancel)
