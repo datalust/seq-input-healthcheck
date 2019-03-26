@@ -6,7 +6,7 @@ Periodically GET an HTTP resource and write response metrics to Seq. These can t
 
 ### Getting started
 
-1. The app requires Seq 5.1 or newer; current versions **require .NET 4.7.2 on the Seq server machine**, if running on Windows
+1. The app requires Seq 5.1 or newer
 2. Navigate to _Settings_ > _Apps_ and select _Install from NuGet_
 3. Install the app with package id _Seq.Input.HealthCheck_
 4. Back on the _Apps_ screen, choose _Add Instance_
