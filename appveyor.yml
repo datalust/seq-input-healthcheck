@@ -1,0 +1,24 @@
+version: '{build}'
+skip_tags: true
+image: Visual Studio 2017
+configuration: Release
+install:
+build_script:
+- ps: ./Build.ps1
+test: off
+artifacts:
+- path: artifacts/Seq.Input.HealthCheck.*.nupkg
+deploy:
+- provider: NuGet
+  api_key:
+    secure: P9oF4P2rIONJlmDfzvG3wrsw08PGPC8udJwjCvzf4K15W/6HX1BTmFpblYLny022
+  skip_symbols: true
+  on:
+    branch: /^(master|dev)$/
+- provider: GitHub
+  auth_token:
+    secure: hX+cZmW+9BCXy7vyH8myWsYdtQHyzzil9K5yvjJv7dK9XmyrGYYDj/DPzMqsXSjo
+  artifact: /Seq.Input.HealthCheck.*\.nupkg/
+  tag: v$(appveyor_build_version)
+  on:
+    branch: master
