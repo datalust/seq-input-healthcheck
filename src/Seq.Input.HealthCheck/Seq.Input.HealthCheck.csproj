@@ -19,7 +19,7 @@
     <PackageReference Include="newtonsoft.json" Version="12.0.1" />
     <PackageReference Include="Seq.Apps" Version="5.1.0" />
     <PackageReference Include="Serilog" Version="2.8.0" />
-    <PackageReference Include="Serilog.Filters.Expressions" Version="2.0.0" />
+    <PackageReference Include="Serilog.Filters.Expressions" Version="2.0.1-dev-00046" />
     <PackageReference Include="Serilog.Formatting.Compact.Reader" Version="1.0.3" />
   </ItemGroup>
 
