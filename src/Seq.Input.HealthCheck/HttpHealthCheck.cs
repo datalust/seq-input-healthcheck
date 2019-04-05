@@ -37,7 +37,7 @@ namespace Seq.Input.HealthCheck
             string contentType = null;
             long? contentLength = null;
             string initialContent = null;
-            JValue data = null;
+            JToken data = null;
 
             var utcTimestamp = DateTime.UtcNow;
             var sw = Stopwatch.StartNew();
@@ -78,7 +78,7 @@ namespace Seq.Input.HealthCheck
         }
 
         // Either initial content, or extracted data
-        async Task<(string initialContent, JValue data)> DownloadContent(Stream body, string contentType, long? contentLength)
+        async Task<(string initialContent, JToken data)> DownloadContent(Stream body, string contentType, long? contentLength)
         {
             if (_extractor == null ||
                 contentLength == 0 ||

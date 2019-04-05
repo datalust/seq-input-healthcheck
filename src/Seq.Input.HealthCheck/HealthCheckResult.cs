@@ -36,7 +36,7 @@ namespace Seq.Input.HealthCheck
         public string InitialContent { get; }
 
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public JValue Data { get; }
+        public JToken Data { get; }
 
         public HealthCheckResult(
             DateTime utcTimestamp,
@@ -51,7 +51,7 @@ namespace Seq.Input.HealthCheck
             long? contentLength,
             string initialContent,
             Exception exception,
-            JValue data)
+            JToken data)
         {
             if (utcTimestamp.Kind != DateTimeKind.Utc)
                 throw new ArgumentException("The timestamp must be UTC.", nameof(utcTimestamp));
