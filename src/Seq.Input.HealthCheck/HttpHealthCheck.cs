@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Seq.Input.HealthCheck
 {
-    class HttpHealthCheck : IDisposable
+    class HttpHealthCheck
     {
         readonly string _title;
         readonly string _targetUrl;
@@ -17,14 +17,11 @@ namespace Seq.Input.HealthCheck
 
         static readonly UTF8Encoding ForgivingEncoding = new UTF8Encoding(false, false);
 
-        public HttpHealthCheck(string title, string targetUrl)
+        public HttpHealthCheck(HttpClient httpClient, string title, string targetUrl)
         {
+            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _title = title ?? throw new ArgumentNullException(nameof(title));
             _targetUrl = targetUrl ?? throw new ArgumentNullException(nameof(targetUrl));
-
-            var handler = new HttpClientHandler {AllowAutoRedirect = false};
-            _httpClient = new HttpClient(handler);
-            _httpClient.DefaultRequestHeaders.Connection.Add("Close");
         }
 
         public async Task<HealthCheckResult> CheckNow(CancellationToken cancel)
@@ -84,11 +81,6 @@ namespace Seq.Input.HealthCheck
             }
 
             return initial;
-        }
-
-        public void Dispose()
-        {
-            _httpClient.Dispose();
         }
     }
 }
