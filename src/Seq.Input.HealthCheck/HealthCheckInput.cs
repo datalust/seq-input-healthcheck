@@ -15,7 +15,8 @@ namespace Seq.Input.HealthCheck
 
         [SeqAppSetting(
             DisplayName = "Target URLs",
-            HelpText = "The HTTP or HTTPS URL that the health check will periodically GET. Multiple URLs can be checked; enter one per line.",
+            HelpText = "The HTTP or HTTPS URL that the health check will periodically GET. Multiple URLs " +
+                       "can be checked; enter one per line.",
             InputType = SettingInputType.LongText)]
         public string TargetUrl { get; set; }
 
@@ -25,15 +26,33 @@ namespace Seq.Input.HealthCheck
             HelpText = "The time between checks; the default is 60.")]
         public int IntervalSeconds { get; set; } = 60;
 
+        [SeqAppSetting(
+            DisplayName = "Data extraction expression",
+            IsOptional = true,
+            HelpText = "A Seq query language expression used to extract information from JSON responses. " +
+                       "The expression will be evaluated against the response to produce a `Data` property" +
+                       " on the resulting event. Use the special value `@Properties` to capture the whole " +
+                       "response. The response must be UTF-8 `application/json` for this to be applied.")]
+        public string DataExtractionExpression { get; set; }
+
         public void Start(TextWriter inputWriter)
         {
             _httpClient = HttpHealthCheckClient.Create();
             var reporter = new HealthCheckReporter(inputWriter);
 
+            JsonDataExtractor extractor = null;
+            if (!string.IsNullOrWhiteSpace(DataExtractionExpression))
+                extractor = new JsonDataExtractor(DataExtractionExpression);
+
             var targetUrls = TargetUrl.Split(new[] {'\r', '\n'}, StringSplitOptions.RemoveEmptyEntries);
             foreach (var targetUrl in targetUrls)
             {
-                var healthCheck = new HttpHealthCheck(_httpClient, App.Title, targetUrl);
+                var healthCheck = new HttpHealthCheck(
+                    _httpClient,
+                    App.Title,
+                    targetUrl,
+                    extractor);
+
                 _healthCheckTasks.Add(new HealthCheckTask(
                     healthCheck,
                     TimeSpan.FromSeconds(IntervalSeconds),
