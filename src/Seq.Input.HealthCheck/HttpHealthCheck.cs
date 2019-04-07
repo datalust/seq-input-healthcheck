@@ -19,6 +19,7 @@ namespace Seq.Input.HealthCheck
 
         static readonly UTF8Encoding ForgivingEncoding = new UTF8Encoding(false, false);
         const int InitialContentChars = 16;
+        const string OutcomeSucceeded = "succeeded", OutcomeFailed = "failed";
 
         public HttpHealthCheck(HttpClient httpClient, string title, string targetUrl, JsonDataExtractor extractor)
         {
@@ -52,22 +53,27 @@ namespace Seq.Input.HealthCheck
                 var content = await response.Content.ReadAsStreamAsync();
                 (initialContent, data) = await DownloadContent(content, contentType, contentLength);
 
-                outcome = response.IsSuccessStatusCode ? "succeeded" : "failed";
+                outcome = response.IsSuccessStatusCode ? OutcomeSucceeded : OutcomeFailed;
             }
             catch (Exception ex)
             {
-                outcome = "failed";
+                outcome = OutcomeFailed;
                 exception = ex;
             }
 
             sw.Stop();
+
+            var level = outcome == OutcomeFailed ? "Error" :
+                data == null && _extractor != null ? "Warning" :
+                null;
+
             return new HealthCheckResult(
                 utcTimestamp,
                 _title,
                 "GET",
                 _targetUrl,
                 outcome,
-                outcome == "failed" ? "Error" : null,
+                level,
                 sw.Elapsed.TotalMilliseconds,
                 statusCode,
                 contentType,
