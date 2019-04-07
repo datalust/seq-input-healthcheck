@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Globalization;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Seq.Input.HealthCheck
 {
@@ -30,7 +31,12 @@ namespace Seq.Input.HealthCheck
         public int? StatusCode { get; }
         public string ContentType { get; }
         public long? ContentLength { get; }
+
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string InitialContent { get; }
+
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public JToken Data { get; }
 
         public HealthCheckResult(
             DateTime utcTimestamp,
@@ -44,7 +50,8 @@ namespace Seq.Input.HealthCheck
             string contentType,
             long? contentLength,
             string initialContent,
-            Exception exception)
+            Exception exception,
+            JToken data)
         {
             if (utcTimestamp.Kind != DateTimeKind.Utc)
                 throw new ArgumentException("The timestamp must be UTC.", nameof(utcTimestamp));
@@ -63,6 +70,7 @@ namespace Seq.Input.HealthCheck
             ContentLength = contentLength;
             InitialContent = initialContent;
             Exception = exception?.ToString();
+            Data = data;
         }
     }
 }
