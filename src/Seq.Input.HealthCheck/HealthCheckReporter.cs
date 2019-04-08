@@ -8,6 +8,7 @@ namespace Seq.Input.HealthCheck
     {
         readonly TextWriter _output;
         readonly JsonSerializer _serializer = JsonSerializer.Create();
+        readonly object _sync = new object();
 
         public HealthCheckReporter(TextWriter output)
         {
@@ -18,9 +19,12 @@ namespace Seq.Input.HealthCheck
         {
             if (result == null) throw new ArgumentNullException(nameof(result));
 
-            _serializer.Serialize(_output, result);
-            _output.WriteLine();
-            _output.Flush();
+            lock (_sync)
+            {
+                _serializer.Serialize(_output, result);
+                _output.WriteLine();
+                _output.Flush();
+            }
         }
     }
 }

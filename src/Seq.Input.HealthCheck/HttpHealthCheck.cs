@@ -5,26 +5,28 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 
 namespace Seq.Input.HealthCheck
 {
-    class HttpHealthCheck : IDisposable
+    class HttpHealthCheck
     {
         readonly string _title;
         readonly string _targetUrl;
+        readonly JsonDataExtractor _extractor;
         readonly HttpClient _httpClient;
         readonly byte[] _buffer = new byte[2048];
 
         static readonly UTF8Encoding ForgivingEncoding = new UTF8Encoding(false, false);
+        const int InitialContentChars = 16;
+        const string OutcomeSucceeded = "succeeded", OutcomeFailed = "failed";
 
-        public HttpHealthCheck(string title, string targetUrl)
+        public HttpHealthCheck(HttpClient httpClient, string title, string targetUrl, JsonDataExtractor extractor)
         {
+            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _title = title ?? throw new ArgumentNullException(nameof(title));
             _targetUrl = targetUrl ?? throw new ArgumentNullException(nameof(targetUrl));
-
-            var handler = new HttpClientHandler {AllowAutoRedirect = false};
-            _httpClient = new HttpClient(handler);
-            _httpClient.DefaultRequestHeaders.Connection.Add("Close");
+            _extractor = extractor;
         }
 
         public async Task<HealthCheckResult> CheckNow(CancellationToken cancel)
@@ -36,6 +38,7 @@ namespace Seq.Input.HealthCheck
             string contentType = null;
             long? contentLength = null;
             string initialContent = null;
+            JToken data = null;
 
             var utcTimestamp = DateTime.UtcNow;
             var sw = Stopwatch.StartNew();
@@ -48,47 +51,71 @@ namespace Seq.Input.HealthCheck
                 contentLength = response.Content.Headers.ContentLength;
 
                 var content = await response.Content.ReadAsStreamAsync();
-                initialContent = await DownloadContent(content);
+                (initialContent, data) = await DownloadContent(content, contentType, contentLength);
 
-                outcome = response.IsSuccessStatusCode ? "succeeded" : "failed";
+                outcome = response.IsSuccessStatusCode ? OutcomeSucceeded : OutcomeFailed;
             }
             catch (Exception ex)
             {
-                outcome = "failed";
+                outcome = OutcomeFailed;
                 exception = ex;
             }
 
             sw.Stop();
+
+            var level = outcome == OutcomeFailed ? "Error" :
+                data == null && _extractor != null ? "Warning" :
+                null;
+
             return new HealthCheckResult(
                 utcTimestamp,
                 _title,
                 "GET",
                 _targetUrl,
                 outcome,
-                outcome == "failed" ? "Error" : null,
+                level,
                 sw.Elapsed.TotalMilliseconds,
                 statusCode,
                 contentType,
                 contentLength,
                 initialContent,
-                exception);
+                exception,
+                data);
         }
 
-        async Task<string> DownloadContent(Stream body)
+        // Either initial content, or extracted data
+        async Task<(string initialContent, JToken data)> DownloadContent(Stream body, string contentType, long? contentLength)
         {
-            var read = await body.ReadAsync(_buffer, 0, _buffer.Length);
-            var initial = ForgivingEncoding.GetString(_buffer, 0, Math.Min(read, 16));
-            while (read > 0)
+            if (_extractor == null ||
+                contentLength == 0 ||
+                contentType != "application/json; charset=utf-8" && contentType != "application/json")
             {
-                read = await body.ReadAsync(_buffer, 0, _buffer.Length);
+                var read = await body.ReadAsync(_buffer, 0, _buffer.Length);
+                var initial = ForgivingEncoding.GetString(_buffer, 0, Math.Min(read, InitialContentChars));
+
+                // Drain the response to avoid dropped connection errors on the server.
+                while (read > 0)
+                    read = await body.ReadAsync(_buffer, 0, _buffer.Length);
+
+                return (initial, null);
             }
 
-            return initial;
-        }
+            var reader = new StreamReader(body, ForgivingEncoding);
+            if (!reader.EndOfStream && reader.Peek() != '{')
+            {
+                // Not the happy path
+                var chars = new char[InitialContentChars];
+                var read = await reader.ReadAsync(chars, 0, InitialContentChars);
 
-        public void Dispose()
-        {
-            _httpClient.Dispose();
+                // Drain the response; note this is reading directly from the stream and not the
+                // reader over it.
+                while (read > 0)
+                    read = await body.ReadAsync(_buffer, 0, _buffer.Length);
+
+                return (new string(chars), null);
+            }
+
+            return (null, _extractor.ExtractData(reader));
         }
     }
 }
