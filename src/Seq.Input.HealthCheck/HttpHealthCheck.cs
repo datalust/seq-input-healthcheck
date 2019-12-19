@@ -61,7 +61,7 @@ namespace Seq.Input.HealthCheck
             JToken data = null;
 
             var probeId = Nonce.Generate(12);
-            var targetUrl = _bypassHttpCaching ?
+            var probedUrl = _bypassHttpCaching ?
                 UrlHelper.AppendParameter(_targetUrl, ProbeIdParameterName, probeId) :
                 _targetUrl;
 
@@ -70,7 +70,7 @@ namespace Seq.Input.HealthCheck
 
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, targetUrl);
+                var request = new HttpRequestMessage(HttpMethod.Get, probedUrl);
                 request.Headers.Add("X-Correlation-ID", probeId);
 
                 if (_bypassHttpCaching)
@@ -103,7 +103,7 @@ namespace Seq.Input.HealthCheck
                 utcTimestamp,
                 _title,
                 "GET",
-                targetUrl,
+                _targetUrl,
                 outcome,
                 probeId,
                 level,
@@ -113,7 +113,8 @@ namespace Seq.Input.HealthCheck
                 contentLength,
                 initialContent,
                 exception,
-                data);
+                data,
+                _targetUrl == probedUrl ? null : probedUrl);
         }
 
         // Either initial content, or extracted data
