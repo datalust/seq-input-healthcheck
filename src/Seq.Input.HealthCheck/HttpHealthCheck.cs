@@ -16,6 +16,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,23 +30,23 @@ namespace Seq.Input.HealthCheck
         readonly string _title;
         readonly string _targetUrl;
         readonly JsonDataExtractor _extractor;
-        readonly bool _appendUniqueIdentifier;
+        readonly bool _bypassHttpCaching;
         readonly HttpClient _httpClient;
         readonly byte[] _buffer = new byte[2048];
 
-        public const string HealthCheckIdUrlParameterName = "__hc";
+        public const string ProbeIdParameterName = "__probe";
 
         static readonly UTF8Encoding ForgivingEncoding = new UTF8Encoding(false, false);
         const int InitialContentChars = 16;
         const string OutcomeSucceeded = "succeeded", OutcomeFailed = "failed";
 
-        public HttpHealthCheck(HttpClient httpClient, string title, string targetUrl, JsonDataExtractor extractor, bool appendUniqueIdentifier)
+        public HttpHealthCheck(HttpClient httpClient, string title, string targetUrl, JsonDataExtractor extractor, bool bypassHttpCaching)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _title = title ?? throw new ArgumentNullException(nameof(title));
             _targetUrl = targetUrl ?? throw new ArgumentNullException(nameof(targetUrl));
             _extractor = extractor;
-            _appendUniqueIdentifier = appendUniqueIdentifier;
+            _bypassHttpCaching = bypassHttpCaching;
         }
 
         public async Task<HealthCheckResult> CheckNow(CancellationToken cancel)
@@ -59,15 +60,24 @@ namespace Seq.Input.HealthCheck
             string initialContent = null;
             JToken data = null;
 
-            var healthCheckId = _appendUniqueIdentifier ? Nonce.Generate(12) : null;
-            var targetUrl = _appendUniqueIdentifier ? UrlHelper.AppendParameter(_targetUrl, HealthCheckIdUrlParameterName, healthCheckId) : _targetUrl;
+            var probeId = Nonce.Generate(12);
+            var targetUrl = _bypassHttpCaching ?
+                UrlHelper.AppendParameter(_targetUrl, ProbeIdParameterName, probeId) :
+                _targetUrl;
 
             var utcTimestamp = DateTime.UtcNow;
             var sw = Stopwatch.StartNew();
 
             try
             {
-                var response = await _httpClient.GetAsync(targetUrl, cancel);
+                var request = new HttpRequestMessage(HttpMethod.Get, targetUrl);
+                request.Headers.Add("X-Correlation-ID", probeId);
+
+                if (_bypassHttpCaching)
+                    request.Headers.CacheControl = new CacheControlHeaderValue { NoCache = true };
+
+                var response = await _httpClient.SendAsync(request, cancel);
+                
                 statusCode = (int)response.StatusCode;
                 contentType = response.Content.Headers.ContentType?.ToString();
                 contentLength = response.Content.Headers.ContentLength;
@@ -95,6 +105,7 @@ namespace Seq.Input.HealthCheck
                 "GET",
                 targetUrl,
                 outcome,
+                probeId,
                 level,
                 sw.Elapsed.TotalMilliseconds,
                 statusCode,
@@ -102,8 +113,7 @@ namespace Seq.Input.HealthCheck
                 contentLength,
                 initialContent,
                 exception,
-                data,
-                healthCheckId);
+                data);
         }
 
         // Either initial content, or extracted data

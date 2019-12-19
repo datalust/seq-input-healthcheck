@@ -50,13 +50,12 @@ namespace Seq.Input.HealthCheck
         public string DataExtractionExpression { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Append unique identifier",
+            DisplayName = "Bypass HTTP caching",
             IsOptional = true,
-            HelpText = "If selected, a unique `" + HttpHealthCheck.HealthCheckIdUrlParameterName  + "` query " +
-                       "string parameter will be added to the URL for each request, in order to disable any " +
-                       "intermediary HTTP caching. The parameter value will be logged in the resulting health " +
-                       "check event as `HealthCheckId` to support correlation.")]
-        public bool AppendUniqueIdentifier { get; set; }
+            HelpText = "If selected, the unique probe id will be appended to the target URL query string as " +
+                       "`" + HttpHealthCheck.ProbeIdParameterName  + "`, in order to disable any " +
+                       "intermediary HTTP caching. The `Cache-Control: nocache` header will also be sent.")]
+        public bool BypassHttpCaching { get; set; }
 
         public void Start(TextWriter inputWriter)
         {
@@ -75,7 +74,7 @@ namespace Seq.Input.HealthCheck
                     App.Title,
                     targetUrl,
                     extractor,
-                    AppendUniqueIdentifier);
+                    BypassHttpCaching);
 
                 _healthCheckTasks.Add(new HealthCheckTask(
                     healthCheck,

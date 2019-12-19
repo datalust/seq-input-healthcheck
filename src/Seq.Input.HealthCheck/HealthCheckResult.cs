@@ -45,6 +45,7 @@ namespace Seq.Input.HealthCheck
         public int? StatusCode { get; }
         public string ContentType { get; }
         public long? ContentLength { get; }
+        public string ProbeId { get; }
 
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string InitialContent { get; }
@@ -52,15 +53,13 @@ namespace Seq.Input.HealthCheck
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public JToken Data { get; }
 
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public string HealthCheckId { get; }
-
         public HealthCheckResult(
             DateTime utcTimestamp,
             string healthCheckTitle,
             string method,
             string targetUrl,            
             string outcome,
+            string probeId,
             string level,
             double elapsed,
             int? statusCode,
@@ -68,8 +67,7 @@ namespace Seq.Input.HealthCheck
             long? contentLength,
             string initialContent,
             Exception exception,
-            JToken data,
-            string healthCheckId)
+            JToken data)
         {
             if (utcTimestamp.Kind != DateTimeKind.Utc)
                 throw new ArgumentException("The timestamp must be UTC.", nameof(utcTimestamp));
@@ -80,6 +78,7 @@ namespace Seq.Input.HealthCheck
             Method = method ?? throw new ArgumentNullException(nameof(method));
             TargetUrl = targetUrl ?? throw new ArgumentNullException(nameof(targetUrl));
             Outcome = outcome ?? throw new ArgumentNullException(nameof(outcome));
+            ProbeId = probeId ?? throw new ArgumentNullException(nameof(probeId));
 
             Level = level;
             Elapsed = elapsed;
@@ -89,7 +88,6 @@ namespace Seq.Input.HealthCheck
             InitialContent = initialContent;
             Exception = exception?.ToString();
             Data = data;
-            HealthCheckId = healthCheckId;
         }
     }
 }
