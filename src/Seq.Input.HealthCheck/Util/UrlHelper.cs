@@ -12,18 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Net.Http;
+using System;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.WebUtilities;
 
-namespace Seq.Input.HealthCheck
+namespace Seq.Input.HealthCheck.Util
 {
-    public static class HttpHealthCheckClient
+    static class UrlHelper
     {
-        public static HttpClient Create()
+        public static string AppendParameter(string targetUrl, string name, string value)
         {
-            var handler = new HttpClientHandler { AllowAutoRedirect = false };
-            var httpClient = new HttpClient(handler);
-            httpClient.DefaultRequestHeaders.Connection.Add("Close");
-            return httpClient;
+            if (targetUrl == null) throw new ArgumentNullException(nameof(targetUrl));
+            if (name == null) throw new ArgumentNullException(nameof(name));
+            if (value == null) throw new ArgumentNullException(nameof(value));
+
+            return QueryHelpers.AddQueryString(targetUrl, new Dictionary<string, string>
+            {
+                [name] = value
+            });
         }
     }
 }
