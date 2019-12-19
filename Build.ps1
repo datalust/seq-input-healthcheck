@@ -24,10 +24,10 @@ foreach ($src in ls src/*) {
     echo "build: Packaging project in $src"
 
     if ($suffix) {
-        & dotnet publish -c Release -o ./obj/publish --version-suffix=$suffix --self-contained
+        & dotnet publish -c Release -o ./obj/publish --version-suffix=$suffix
         & dotnet pack -c Release -o ..\..\artifacts --no-build --version-suffix=$suffix
     } else {
-        & dotnet publish -c Release -o ./obj/publish --self-contained
+        & dotnet publish -c Release -o ./obj/publish
         & dotnet pack -c Release -o ..\..\artifacts --no-build
     }
     if($LASTEXITCODE -ne 0) { exit 1 }    
