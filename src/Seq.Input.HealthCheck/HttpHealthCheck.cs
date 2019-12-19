@@ -74,7 +74,7 @@ namespace Seq.Input.HealthCheck
                 request.Headers.Add("X-Correlation-ID", probeId);
 
                 if (_bypassHttpCaching)
-                    request.Headers.CacheControl = new CacheControlHeaderValue { NoCache = true };
+                    request.Headers.CacheControl = new CacheControlHeaderValue { NoStore = true };
 
                 var response = await _httpClient.SendAsync(request, cancel);
                 

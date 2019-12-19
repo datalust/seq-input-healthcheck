@@ -54,7 +54,7 @@ namespace Seq.Input.HealthCheck
             IsOptional = true,
             HelpText = "If selected, the unique probe id will be appended to the target URL query string as " +
                        "`" + HttpHealthCheck.ProbeIdParameterName  + "`, in order to disable any " +
-                       "intermediary HTTP caching. The `Cache-Control: no-cache` header will also be sent.")]
+                       "intermediary HTTP caching. The `Cache-Control: no-store` header will also be sent.")]
         public bool BypassHttpCaching { get; set; }
 
         public void Start(TextWriter inputWriter)
