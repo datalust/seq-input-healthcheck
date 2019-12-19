@@ -1,11 +1,27 @@
-﻿using System;
+﻿// Copyright 2019 Datalust and contributors. 
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using Seq.Input.HealthCheck.Util;
 
 namespace Seq.Input.HealthCheck
 {
@@ -14,19 +30,23 @@ namespace Seq.Input.HealthCheck
         readonly string _title;
         readonly string _targetUrl;
         readonly JsonDataExtractor _extractor;
+        readonly bool _bypassHttpCaching;
         readonly HttpClient _httpClient;
         readonly byte[] _buffer = new byte[2048];
+
+        public const string ProbeIdParameterName = "__probe";
 
         static readonly UTF8Encoding ForgivingEncoding = new UTF8Encoding(false, false);
         const int InitialContentChars = 16;
         const string OutcomeSucceeded = "succeeded", OutcomeFailed = "failed";
 
-        public HttpHealthCheck(HttpClient httpClient, string title, string targetUrl, JsonDataExtractor extractor)
+        public HttpHealthCheck(HttpClient httpClient, string title, string targetUrl, JsonDataExtractor extractor, bool bypassHttpCaching)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _title = title ?? throw new ArgumentNullException(nameof(title));
             _targetUrl = targetUrl ?? throw new ArgumentNullException(nameof(targetUrl));
             _extractor = extractor;
+            _bypassHttpCaching = bypassHttpCaching;
         }
 
         public async Task<HealthCheckResult> CheckNow(CancellationToken cancel)
@@ -40,12 +60,24 @@ namespace Seq.Input.HealthCheck
             string initialContent = null;
             JToken data = null;
 
+            var probeId = Nonce.Generate(12);
+            var probedUrl = _bypassHttpCaching ?
+                UrlHelper.AppendParameter(_targetUrl, ProbeIdParameterName, probeId) :
+                _targetUrl;
+
             var utcTimestamp = DateTime.UtcNow;
             var sw = Stopwatch.StartNew();
 
             try
             {
-                var response = await _httpClient.GetAsync(_targetUrl, cancel);
+                var request = new HttpRequestMessage(HttpMethod.Get, probedUrl);
+                request.Headers.Add("X-Correlation-ID", probeId);
+
+                if (_bypassHttpCaching)
+                    request.Headers.CacheControl = new CacheControlHeaderValue { NoStore = true };
+
+                var response = await _httpClient.SendAsync(request, cancel);
+                
                 statusCode = (int)response.StatusCode;
                 contentType = response.Content.Headers.ContentType?.ToString();
                 contentLength = response.Content.Headers.ContentLength;
@@ -73,6 +105,7 @@ namespace Seq.Input.HealthCheck
                 "GET",
                 _targetUrl,
                 outcome,
+                probeId,
                 level,
                 sw.Elapsed.TotalMilliseconds,
                 statusCode,
@@ -80,7 +113,8 @@ namespace Seq.Input.HealthCheck
                 contentLength,
                 initialContent,
                 exception,
-                data);
+                data,
+                _targetUrl == probedUrl ? null : probedUrl);
         }
 
         // Either initial content, or extracted data

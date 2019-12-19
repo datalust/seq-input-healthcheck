@@ -1,4 +1,18 @@
-﻿using System;
+﻿// Copyright 2019 Datalust and contributors. 
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+using System;
 using System.Globalization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -31,6 +45,7 @@ namespace Seq.Input.HealthCheck
         public int? StatusCode { get; }
         public string ContentType { get; }
         public long? ContentLength { get; }
+        public string ProbeId { get; }
 
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string InitialContent { get; }
@@ -38,12 +53,16 @@ namespace Seq.Input.HealthCheck
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public JToken Data { get; }
 
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public string ProbedUrl { get; }
+
         public HealthCheckResult(
             DateTime utcTimestamp,
             string healthCheckTitle,
             string method,
             string targetUrl,            
             string outcome,
+            string probeId,
             string level,
             double elapsed,
             int? statusCode,
@@ -51,7 +70,8 @@ namespace Seq.Input.HealthCheck
             long? contentLength,
             string initialContent,
             Exception exception,
-            JToken data)
+            JToken data,
+            string probedUrl)
         {
             if (utcTimestamp.Kind != DateTimeKind.Utc)
                 throw new ArgumentException("The timestamp must be UTC.", nameof(utcTimestamp));
@@ -62,6 +82,7 @@ namespace Seq.Input.HealthCheck
             Method = method ?? throw new ArgumentNullException(nameof(method));
             TargetUrl = targetUrl ?? throw new ArgumentNullException(nameof(targetUrl));
             Outcome = outcome ?? throw new ArgumentNullException(nameof(outcome));
+            ProbeId = probeId ?? throw new ArgumentNullException(nameof(probeId));
 
             Level = level;
             Elapsed = elapsed;
@@ -71,6 +92,7 @@ namespace Seq.Input.HealthCheck
             InitialContent = initialContent;
             Exception = exception?.ToString();
             Data = data;
+            ProbedUrl = probedUrl;
         }
     }
 }
