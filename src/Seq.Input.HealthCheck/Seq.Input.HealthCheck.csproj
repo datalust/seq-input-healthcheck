@@ -6,7 +6,7 @@
     <Description>Seq Health Check: periodically GET an HTTP resource and publish response metrics to Seq.</Description>
     <Authors>Datalust and Contributors</Authors>
     <PackageTags>seq-app</PackageTags>
-    <PackageIconUrl>https://raw.githubusercontent.com/datalust/seq-input-healthcheck/dev/asset/seq-input-healthcheck.png</PackageIconUrl>
+    <PackageIconUrl>https://raw.githubusercontent.com/datalust/seq-input-healthcheck/dev/asset/seq-input-healthcheck-2.png</PackageIconUrl>
     <PackageProjectUrl>https://github.com/datalust/seq-input-healthcheck</PackageProjectUrl>
     <RepositoryUrl>https://github.com/datalust/seq-input-healthcheck</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
