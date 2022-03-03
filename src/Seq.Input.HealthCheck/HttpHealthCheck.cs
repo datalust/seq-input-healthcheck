@@ -29,6 +29,7 @@ namespace Seq.Input.HealthCheck
     {
         readonly string _title;
         readonly string _targetUrl;
+        readonly string _authenticationHeaderValue;
         readonly JsonDataExtractor _extractor;
         readonly bool _bypassHttpCaching;
         readonly HttpClient _httpClient;
@@ -40,11 +41,12 @@ namespace Seq.Input.HealthCheck
         const int InitialContentChars = 16;
         const string OutcomeSucceeded = "succeeded", OutcomeFailed = "failed";
 
-        public HttpHealthCheck(HttpClient httpClient, string title, string targetUrl, JsonDataExtractor extractor, bool bypassHttpCaching)
+        public HttpHealthCheck(HttpClient httpClient, string title, string targetUrl, string authenticationHeaderValue, JsonDataExtractor extractor, bool bypassHttpCaching)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _title = title ?? throw new ArgumentNullException(nameof(title));
             _targetUrl = targetUrl ?? throw new ArgumentNullException(nameof(targetUrl));
+            _authenticationHeaderValue = authenticationHeaderValue;
             _extractor = extractor;
             _bypassHttpCaching = bypassHttpCaching;
         }
@@ -72,6 +74,10 @@ namespace Seq.Input.HealthCheck
             {
                 var request = new HttpRequestMessage(HttpMethod.Get, probedUrl);
                 request.Headers.Add("X-Correlation-ID", probeId);
+                if (_authenticationHeaderValue != null)
+                {
+                    request.Headers.Add("Authorization", _authenticationHeaderValue);
+                }
 
                 if (_bypassHttpCaching)
                     request.Headers.CacheControl = new CacheControlHeaderValue { NoStore = true };

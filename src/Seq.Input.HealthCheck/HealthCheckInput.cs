@@ -34,6 +34,10 @@ namespace Seq.Input.HealthCheck
             InputType = SettingInputType.LongText)]
         public string TargetUrl { get; set; }
 
+        [SeqAppSetting(InputType = SettingInputType.Password, IsOptional = true, DisplayName = "Authentication Header",
+            HelpText = "An optional `Name: Value` header, stored as sensitive data, for authentication purposes.")]
+        public string AuthenticationHeader { get; set; }
+
         [SeqAppSetting(
             DisplayName = "Interval (seconds)",
             IsOptional = true,
@@ -73,6 +77,7 @@ namespace Seq.Input.HealthCheck
                     _httpClient,
                     App.Title,
                     targetUrl,
+                    AuthenticationHeader,
                     extractor,
                     BypassHttpCaching);
 
