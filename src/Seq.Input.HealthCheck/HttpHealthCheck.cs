@@ -94,8 +94,11 @@ namespace Seq.Input.HealthCheck
                 request.Headers.Add("X-Correlation-ID", probeId);
                 if(_optionalHeader != null) {
                     var optionalHeaders = _optionalHeader
-                        .Split('\n')
-                        .Select(line => line.Split(':').Select(x => x.Trim()).ToArray())
+                        .Split(new [] {'\n'}, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(line => line
+                            .Split(new [] {':'}, 1, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(x => x.Trim())
+                            .ToArray())
                         .Where(keyValuePair => keyValuePair.Length == 2)
                         .ToArray();
                     foreach (var optionalHeader in optionalHeaders)
