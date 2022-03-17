@@ -15,6 +15,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -30,6 +31,7 @@ namespace Seq.Input.HealthCheck
         readonly string _title;
         readonly string _targetUrl;
         readonly string _authenticationHeaderValue;
+        private readonly string _optionalHeader;
         readonly JsonDataExtractor _extractor;
         readonly bool _bypassHttpCaching;
         readonly HttpClient _httpClient;
@@ -41,14 +43,30 @@ namespace Seq.Input.HealthCheck
         const int InitialContentChars = 16;
         const string OutcomeSucceeded = "succeeded", OutcomeFailed = "failed";
 
-        public HttpHealthCheck(HttpClient httpClient, string title, string targetUrl, string authenticationHeaderValue, JsonDataExtractor extractor, bool bypassHttpCaching)
+        public HttpHealthCheck(HttpClient httpClient, string title, string targetUrl, string authenticationHeaderValue, string optionalHeader, JsonDataExtractor extractor, bool bypassHttpCaching)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _title = title ?? throw new ArgumentNullException(nameof(title));
             _targetUrl = targetUrl ?? throw new ArgumentNullException(nameof(targetUrl));
             _authenticationHeaderValue = authenticationHeaderValue;
+            _optionalHeader = optionalHeader;
             _extractor = extractor;
             _bypassHttpCaching = bypassHttpCaching;
+        }
+
+        private static void AddOrOverwriteHeader(HttpRequestMessage request, string attribute, string value)
+        {
+            // opportunistic abort: header values cannot be empty (https://datatracker.ietf.org/doc/html/rfc7230#section-3.2)
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return;
+            }
+            // the api does not allow overwriting, therefore removal has to happen first.
+            if (request.Headers.Contains(attribute))
+            {
+                request.Headers.Remove(attribute);
+            }
+            request.Headers.Add(attribute, value);
         }
 
         public async Task<HealthCheckResult> CheckNow(CancellationToken cancel)
@@ -74,9 +92,21 @@ namespace Seq.Input.HealthCheck
             {
                 var request = new HttpRequestMessage(HttpMethod.Get, probedUrl);
                 request.Headers.Add("X-Correlation-ID", probeId);
+                if(_optionalHeader != null) {
+                    var optionalHeaders = _optionalHeader
+                        .Split('\n')
+                        .Select(line => line.Split(':').Select(x => x.Trim()).ToArray())
+                        .Where(keyValuePair => keyValuePair.Length == 2)
+                        .ToArray();
+                    foreach (var optionalHeader in optionalHeaders)
+                    {
+                        AddOrOverwriteHeader(request, optionalHeader[0], optionalHeader[1]);
+                    }
+                }
                 if (_authenticationHeaderValue != null)
                 {
-                    request.Headers.Add("Authorization", _authenticationHeaderValue);
+                    //  will explicitly overwrite Authorization if prior defined in optional headers
+                    AddOrOverwriteHeader(request, "Authorization", _authenticationHeaderValue);
                 }
 
                 if (_bypassHttpCaching)
