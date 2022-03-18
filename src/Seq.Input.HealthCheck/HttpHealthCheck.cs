@@ -31,7 +31,7 @@ namespace Seq.Input.HealthCheck
         readonly string _title;
         readonly string _targetUrl;
         readonly string _authenticationHeaderValue;
-        private readonly string _optionalHeader;
+        readonly string _optionalHeader;
         readonly JsonDataExtractor _extractor;
         readonly bool _bypassHttpCaching;
         readonly HttpClient _httpClient;
@@ -54,7 +54,7 @@ namespace Seq.Input.HealthCheck
             _bypassHttpCaching = bypassHttpCaching;
         }
 
-        private static void AddOrOverwriteHeader(HttpRequestMessage request, string attribute, string value)
+        static void AddOrOverwriteHeader(HttpRequestMessage request, string attribute, string value)
         {
             // opportunistic abort: header values cannot be empty (https://datatracker.ietf.org/doc/html/rfc7230#section-3.2)
             if (string.IsNullOrWhiteSpace(value))
