@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using Seq.Apps;
+using Seq.Input.HealthCheck.Util;
 
 namespace Seq.Input.HealthCheck
 {
@@ -38,13 +39,9 @@ namespace Seq.Input.HealthCheck
             HelpText = "An optional `Name: Value` header, stored as sensitive data, for authentication purposes.")]
         public string AuthenticationHeader { get; set; }
         
-        [SeqAppSetting(InputType = SettingInputType.LongText,
-            IsOptional = true,
-            DisplayName = "Additional Header",
-            HelpText = "Optional headers sent to each URL in format of `Attribute: Value`.\n" + 
-                       "Headers always need a value, attributes cannot contain spaces, duplicate attributes will be " +
-                       "overwritten in order of appearance.")]
-        public string AdditionalHeader { get; set; }
+        [SeqAppSetting(InputType = SettingInputType.LongText, IsOptional = true, DisplayName = "Other Headers",
+            HelpText = "Additional headers to send with the request, one per line in `Name: Value` format.")]
+        public string OtherHeaders { get; set; }
         
         [SeqAppSetting(
             DisplayName = "Bypass HTTP caching",
@@ -87,8 +84,7 @@ namespace Seq.Input.HealthCheck
                     _httpClient,
                     App.Title,
                     targetUrl,
-                    AuthenticationHeader,
-                    AdditionalHeader,
+                    HeaderSettingFormat.FromSettings(AuthenticationHeader, OtherHeaders),
                     extractor,
                     BypassHttpCaching);
 
