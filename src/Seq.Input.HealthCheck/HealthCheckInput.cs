@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using Seq.Apps;
+using Seq.Input.HealthCheck.Util;
 
 namespace Seq.Input.HealthCheck
 {
@@ -34,6 +35,22 @@ namespace Seq.Input.HealthCheck
             InputType = SettingInputType.LongText)]
         public string TargetUrl { get; set; }
 
+        [SeqAppSetting(InputType = SettingInputType.Password, IsOptional = true, DisplayName = "Authentication Header",
+            HelpText = "An optional `Name: Value` header, stored as sensitive data, for authentication purposes.")]
+        public string AuthenticationHeader { get; set; }
+        
+        [SeqAppSetting(InputType = SettingInputType.LongText, IsOptional = true, DisplayName = "Other Headers",
+            HelpText = "Additional headers to send with the request, one per line in `Name: Value` format.")]
+        public string OtherHeaders { get; set; }
+        
+        [SeqAppSetting(
+            DisplayName = "Bypass HTTP caching",
+            IsOptional = true,
+            HelpText = "If selected, the unique probe id will be appended to the target URL query string as " +
+                "`" + HttpHealthCheck.ProbeIdParameterName  + "`, in order to disable any " +
+                "intermediary HTTP caching. The `Cache-Control: no-store` header will also be sent.")]
+        public bool BypassHttpCaching { get; set; }
+
         [SeqAppSetting(
             DisplayName = "Interval (seconds)",
             IsOptional = true,
@@ -49,13 +66,7 @@ namespace Seq.Input.HealthCheck
                        "response. The response must be UTF-8 `application/json` for this to be applied.")]
         public string DataExtractionExpression { get; set; }
 
-        [SeqAppSetting(
-            DisplayName = "Bypass HTTP caching",
-            IsOptional = true,
-            HelpText = "If selected, the unique probe id will be appended to the target URL query string as " +
-                       "`" + HttpHealthCheck.ProbeIdParameterName  + "`, in order to disable any " +
-                       "intermediary HTTP caching. The `Cache-Control: no-store` header will also be sent.")]
-        public bool BypassHttpCaching { get; set; }
+
 
         public void Start(TextWriter inputWriter)
         {
@@ -73,6 +84,7 @@ namespace Seq.Input.HealthCheck
                     _httpClient,
                     App.Title,
                     targetUrl,
+                    HeaderSettingFormat.FromSettings(AuthenticationHeader, OtherHeaders),
                     extractor,
                     BypassHttpCaching);
 

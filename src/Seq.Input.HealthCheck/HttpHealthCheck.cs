@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
@@ -29,6 +30,7 @@ namespace Seq.Input.HealthCheck
     {
         readonly string _title;
         readonly string _targetUrl;
+        readonly List<(string, string)> _headers;
         readonly JsonDataExtractor _extractor;
         readonly bool _bypassHttpCaching;
         readonly HttpClient _httpClient;
@@ -40,15 +42,16 @@ namespace Seq.Input.HealthCheck
         const int InitialContentChars = 16;
         const string OutcomeSucceeded = "succeeded", OutcomeFailed = "failed";
 
-        public HttpHealthCheck(HttpClient httpClient, string title, string targetUrl, JsonDataExtractor extractor, bool bypassHttpCaching)
+        public HttpHealthCheck(HttpClient httpClient, string title, string targetUrl,  List<(string, string)> headers, JsonDataExtractor extractor, bool bypassHttpCaching)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _title = title ?? throw new ArgumentNullException(nameof(title));
             _targetUrl = targetUrl ?? throw new ArgumentNullException(nameof(targetUrl));
+            _headers = headers;
             _extractor = extractor;
             _bypassHttpCaching = bypassHttpCaching;
         }
-
+        
         public async Task<HealthCheckResult> CheckNow(CancellationToken cancel)
         {
             string outcome;
@@ -72,6 +75,18 @@ namespace Seq.Input.HealthCheck
             {
                 var request = new HttpRequestMessage(HttpMethod.Get, probedUrl);
                 request.Headers.Add("X-Correlation-ID", probeId);
+                if (_headers != null)
+                {
+                    foreach (var (name, value) in _headers)
+                    {
+                        // the api does not allow overwriting, therefore removal has to happen first.
+                        if (request.Headers.Contains(name))
+                        {
+                            request.Headers.Remove(name);
+                        }
+                        request.Headers.Add(name, value);
+                    }
+                }
 
                 if (_bypassHttpCaching)
                     request.Headers.CacheControl = new CacheControlHeaderValue { NoStore = true };
