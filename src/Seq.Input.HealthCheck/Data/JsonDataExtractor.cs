@@ -16,34 +16,33 @@ using System;
 using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Serilog.Events;
-using Serilog.Filters.Expressions;
+using Serilog.Expressions;
 using Serilog.Formatting.Compact.Reader;
 using Serilog.Formatting.Json;
 
-namespace Seq.Input.HealthCheck
+namespace Seq.Input.HealthCheck.Data
 {
     public class JsonDataExtractor
     {
-        static readonly JsonValueFormatter ValueFormatter = new JsonValueFormatter("$type");
+        static readonly JsonValueFormatter ValueFormatter = new("$type");
         static readonly JsonSerializer Serializer = JsonSerializer.Create(new JsonSerializerSettings
         {
             DateParseHandling = DateParseHandling.None
         });
 
-        readonly Func<JToken, JToken> _extract;
+        readonly Func<JToken?, JToken> _extract;
 
         public JsonDataExtractor(string expression)
         {
             if (expression == "@Properties")
             {
-                _extract = v => v;
+                _extract = v => v ?? JValue.CreateNull();
             }
             else
             {
-                var expr = FilterLanguage.CreateFilter(expression);
+                var expr = SerilogExpression.Compile(expression, nameResolver: new SeqSyntaxNameResolver());
                 _extract = v => {
-                    if (!(v is JObject obj))
+                    if (v is not JObject obj)
                         throw new ArgumentException("Data value extraction requires a JSON object response.");
 
                     if (!obj.ContainsKey("@t"))
@@ -52,16 +51,15 @@ namespace Seq.Input.HealthCheck
                     var le = LogEventReader.ReadFromJObject(obj);
 
                     var value = expr(le);
+                    
+                    // `null` here means "undefined", but for most purposes this substitution is convenient.
                     if (value == null)
                         return JValue.CreateNull();
 
-                    if (!(value is LogEventPropertyValue lepv))
-                        return JToken.FromObject(value);
-
                     var sw = new StringWriter();
-                    ValueFormatter.Format(lepv, sw);
+                    ValueFormatter.Format(value, sw);
                     return Serializer.Deserialize<JToken>(
-                        new JsonTextReader(new StringReader(sw.ToString())));
+                        new JsonTextReader(new StringReader(sw.ToString())))!;
                 };
             }
         }
