@@ -1,6 +1,7 @@
 using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Seq.Input.HealthCheck.Data;
 using Xunit;
 
 namespace Seq.Input.HealthCheck.Tests

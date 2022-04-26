@@ -17,7 +17,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using Seq.Apps;
+using Seq.Input.HealthCheck.Data;
 using Seq.Input.HealthCheck.Util;
+// ReSharper disable MemberCanBePrivate.Global
+// ReSharper disable UnusedAutoPropertyAccessor.Global
+// ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 
 namespace Seq.Input.HealthCheck
 {
@@ -26,22 +30,22 @@ namespace Seq.Input.HealthCheck
     public class HealthCheckInput : SeqApp, IPublishJson, IDisposable
     {
         readonly List<HealthCheckTask> _healthCheckTasks = new List<HealthCheckTask>();
-        HttpClient _httpClient;
+        HttpClient? _httpClient;
 
         [SeqAppSetting(
             DisplayName = "Target URLs",
             HelpText = "The HTTP or HTTPS URL that the health check will periodically GET. Multiple URLs " +
                        "can be checked; enter one per line.",
             InputType = SettingInputType.LongText)]
-        public string TargetUrl { get; set; }
+        public string TargetUrl { get; set; } = null!;
 
         [SeqAppSetting(InputType = SettingInputType.Password, IsOptional = true, DisplayName = "Authentication Header",
             HelpText = "An optional `Name: Value` header, stored as sensitive data, for authentication purposes.")]
-        public string AuthenticationHeader { get; set; }
+        public string? AuthenticationHeader { get; set; }
         
         [SeqAppSetting(InputType = SettingInputType.LongText, IsOptional = true, DisplayName = "Other Headers",
             HelpText = "Additional headers to send with the request, one per line in `Name: Value` format.")]
-        public string OtherHeaders { get; set; }
+        public string? OtherHeaders { get; set; }
         
         [SeqAppSetting(
             DisplayName = "Bypass HTTP caching",
@@ -64,16 +68,14 @@ namespace Seq.Input.HealthCheck
                        "The expression will be evaluated against the response to produce a `Data` property" +
                        " on the resulting event. Use the special value `@Properties` to capture the whole " +
                        "response. The response must be UTF-8 `application/json` for this to be applied.")]
-        public string DataExtractionExpression { get; set; }
-
-
-
+        public string? DataExtractionExpression { get; set; }
+        
         public void Start(TextWriter inputWriter)
         {
             _httpClient = HttpHealthCheckClient.Create();
             var reporter = new HealthCheckReporter(inputWriter);
 
-            JsonDataExtractor extractor = null;
+            JsonDataExtractor? extractor = null;
             if (!string.IsNullOrWhiteSpace(DataExtractionExpression))
                 extractor = new JsonDataExtractor(DataExtractionExpression);
 

@@ -7,7 +7,7 @@ namespace Seq.Input.HealthCheck.Tests.Util
 {
     public class NonceTests
     {
-        public static IEnumerable<object[]> CharacterCounts = Enumerable.Range(0, 100).Select(n => new [] { (object)n });
+        public static readonly IEnumerable<object[]> CharacterCounts = Enumerable.Range(0, 100).Select(n => new [] { (object)n });
 
         [Theory]
         [MemberData(nameof(CharacterCounts))]
