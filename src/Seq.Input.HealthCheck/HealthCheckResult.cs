@@ -16,6 +16,8 @@ using System;
 using System.Globalization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+// ReSharper disable UnusedAutoPropertyAccessor.Global
+// ReSharper disable MemberCanBePrivate.Global
 
 namespace Seq.Input.HealthCheck
 {
@@ -25,14 +27,14 @@ namespace Seq.Input.HealthCheck
         public DateTime UtcTimestamp { get; }
 
         [JsonProperty("@x", DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public string Exception { get; }
+        public string? Exception { get; }
 
         [JsonProperty("@mt")]
         public string MessageTemplate { get; } =
             "Health check {Method} {TargetUrl} {Outcome} with status code {StatusCode} in {Elapsed:0.000} ms";
 
         [JsonProperty("@l", DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public string Level { get; }
+        public string? Level { get; }
 
         [JsonProperty("@r")]
         public string[] Renderings => new[] {Elapsed.ToString("0.000", CultureInfo.InvariantCulture)};
@@ -43,18 +45,18 @@ namespace Seq.Input.HealthCheck
         public string Outcome { get; }
         public double Elapsed { get; }
         public int? StatusCode { get; }
-        public string ContentType { get; }
+        public string? ContentType { get; }
         public long? ContentLength { get; }
         public string ProbeId { get; }
 
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public string InitialContent { get; }
+        public string? InitialContent { get; }
 
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public JToken Data { get; }
+        public JToken? Data { get; }
 
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public string ProbedUrl { get; }
+        public string? ProbedUrl { get; }
 
         public HealthCheckResult(
             DateTime utcTimestamp,
@@ -63,15 +65,15 @@ namespace Seq.Input.HealthCheck
             string targetUrl,            
             string outcome,
             string probeId,
-            string level,
+            string? level,
             double elapsed,
             int? statusCode,
-            string contentType,
+            string? contentType,
             long? contentLength,
-            string initialContent,
-            Exception exception,
-            JToken data,
-            string probedUrl)
+            string? initialContent,
+            Exception? exception,
+            JToken? data,
+            string? probedUrl)
         {
             if (utcTimestamp.Kind != DateTimeKind.Utc)
                 throw new ArgumentException("The timestamp must be UTC.", nameof(utcTimestamp));

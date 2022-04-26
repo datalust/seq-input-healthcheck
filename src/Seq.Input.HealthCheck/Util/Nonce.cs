@@ -31,20 +31,18 @@ namespace Seq.Input.HealthCheck.Util
         {
             var rem = count;
             var buf = new byte[128];
-            using (var rng = RandomNumberGenerator.Create())
+            using var rng = RandomNumberGenerator.Create();
+            while (rem > 0)
             {
-                while (rem > 0)
+                rng.GetBytes(buf);
+                var b64 = Convert.ToBase64String(buf);
+                for (var i = 0; i < b64.Length && rem > 0; ++i)
                 {
-                    rng.GetBytes(buf);
-                    var b64 = Convert.ToBase64String(buf);
-                    for (var i = 0; i < b64.Length && rem > 0; ++i)
+                    var c = b64[i];
+                    if (char.IsLetterOrDigit(c))
                     {
-                        var c = b64[i];
-                        if (char.IsLetterOrDigit(c))
-                        {
-                            yield return c;
-                            rem--;
-                        }
+                        yield return c;
+                        rem--;
                     }
                 }
             }
