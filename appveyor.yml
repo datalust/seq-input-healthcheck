@@ -1,8 +1,6 @@
 version: '{build}'
 skip_tags: true
-image: Visual Studio 2017
-configuration: Release
-install:
+image: Visual Studio 2022
 build_script:
 - ps: ./Build.ps1
 test: off
@@ -14,7 +12,7 @@ deploy:
     secure: ABsZ0uLbAvoUFXnkUJ/DZwQwGQ1EIKzvSOm3aFSUZ0kY4lTBIQhI38KxrNFahQRB
   skip_symbols: true
   on:
-    branch: /^(master|dev)$/
+    branch: /^(main|dev)$/
 - provider: GitHub
   auth_token:
     secure: hX+cZmW+9BCXy7vyH8myWsYdtQHyzzil9K5yvjJv7dK9XmyrGYYDj/DPzMqsXSjo
