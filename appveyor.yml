@@ -19,4 +19,4 @@ deploy:
   artifact: /Seq.Input.HealthCheck.*\.nupkg/
   tag: v$(appveyor_build_version)
   on:
-    branch: master
+    branch: main
