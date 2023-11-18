@@ -48,6 +48,12 @@ namespace Seq.Input.HealthCheck
         public string? OtherHeaders { get; set; }
         
         [SeqAppSetting(
+            DisplayName = "Follow Redirects",
+            IsOptional = true,
+            HelpText = "If selected, the HTTP Request will follow redirects.")]
+        public bool FollowRedirects { get; set; }
+
+        [SeqAppSetting(
             DisplayName = "Bypass HTTP caching",
             IsOptional = true,
             HelpText = "If selected, the unique probe id will be appended to the target URL query string as " +
@@ -72,7 +78,7 @@ namespace Seq.Input.HealthCheck
         
         public void Start(TextWriter inputWriter)
         {
-            _httpClient = HttpHealthCheckClient.Create();
+            _httpClient = HttpHealthCheckClient.Create(FollowRedirects);
             var reporter = new HealthCheckReporter(inputWriter);
 
             JsonDataExtractor? extractor = null;

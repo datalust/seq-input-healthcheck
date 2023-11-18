@@ -18,9 +18,9 @@ namespace Seq.Input.HealthCheck
 {
     public static class HttpHealthCheckClient
     {
-        public static HttpClient Create()
+        public static HttpClient Create(bool FollowRedirects)
         {
-            var handler = new HttpClientHandler { AllowAutoRedirect = false };
+            var handler = new HttpClientHandler { AllowAutoRedirect = FollowRedirects };
             var httpClient = new HttpClient(handler);
             httpClient.DefaultRequestHeaders.Connection.Add("Close");
             return httpClient;
