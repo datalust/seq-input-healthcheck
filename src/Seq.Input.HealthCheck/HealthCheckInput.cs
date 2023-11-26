@@ -50,8 +50,8 @@ namespace Seq.Input.HealthCheck
         [SeqAppSetting(
             DisplayName = "Follow Redirects",
             IsOptional = true,
-            HelpText = "If selected, the HTTP Request will follow redirects.")]
-        public bool FollowRedirects { get; set; }
+            HelpText = "If selected, the HTTP Request will follow redirects. Defaults to false.")]
+        public bool FollowRedirects { get; set; } = false;
 
         [SeqAppSetting(
             DisplayName = "Bypass HTTP caching",
