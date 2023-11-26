@@ -24,9 +24,12 @@ using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using Seq.Input.HealthCheck.Data;
 using Seq.Input.HealthCheck.Util;
+using Serilog;
 
 namespace Seq.Input.HealthCheck
 {
+    record Redirect(Uri? RequestUri, int StatusCode, Uri RedirectUri);
+
     class HttpHealthCheck
     {
         readonly string _title;
@@ -35,15 +38,20 @@ namespace Seq.Input.HealthCheck
         readonly JsonDataExtractor? _extractor;
         readonly bool _bypassHttpCaching;
         readonly HttpClient _httpClient;
+        bool _shouldFollowRedirects;
         readonly byte[] _buffer = new byte[2048];
 
         public const string ProbeIdParameterName = "__probe";
+        public const string CorrelationHeaderId = "X-Correlation-ID";
+        public const int MaxRedirectCount = 10;
 
         static readonly UTF8Encoding ForgivingEncoding = new(false, false);
+        private readonly ILogger _log;
         const int InitialContentChars = 16;
         const string OutcomeSucceeded = "succeeded", OutcomeFailed = "failed";
 
-        public HttpHealthCheck(HttpClient httpClient, string title, string targetUrl,  List<(string, string)> headers, JsonDataExtractor? extractor, bool bypassHttpCaching)
+        public HttpHealthCheck(HttpClient httpClient, string title, string targetUrl, List<(string, string)> headers, JsonDataExtractor? extractor,
+            bool bypassHttpCaching, ILogger log, bool shouldFollowRedirects = false)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _title = title ?? throw new ArgumentNullException(nameof(title));
@@ -51,8 +59,11 @@ namespace Seq.Input.HealthCheck
             _headers = headers;
             _extractor = extractor;
             _bypassHttpCaching = bypassHttpCaching;
+            _shouldFollowRedirects = shouldFollowRedirects;
+            // todo: Is this the best way to inject logging?
+            _log = log;
         }
-        
+
         public async Task<HealthCheckResult> CheckNow(CancellationToken cancel)
         {
             string outcome;
@@ -63,32 +74,21 @@ namespace Seq.Input.HealthCheck
             long? contentLength = null;
             string? initialContent = null;
             JToken? data = null;
+            Stack<Redirect> _redirectedUrls = new();
+
 
             var probeId = Nonce.Generate(12);
-            var probedUrl = _bypassHttpCaching ?
-                UrlHelper.AppendParameter(_targetUrl, ProbeIdParameterName, probeId) :
-                _targetUrl;
 
+            // todo: Does bypassing the _httpCaching have any impact with regard to following redirects?
+            var probedUrl = _bypassHttpCaching ? UrlHelper.AppendParameter(_targetUrl, ProbeIdParameterName, probeId) : _targetUrl;
             var utcTimestamp = DateTime.UtcNow;
             var sw = Stopwatch.StartNew();
 
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, probedUrl);
-                request.Headers.Add("X-Correlation-ID", probeId);
+                var response = await MakeAndFollowRequest(cancel, probedUrl, probeId, _redirectedUrls);
 
-                foreach (var (name, value) in _headers)
-                {
-                    // This will throw if a header is duplicated (better for the user to detect this configuration problem).
-                    request.Headers.Add(name, value);
-                }
-
-                if (_bypassHttpCaching)
-                    request.Headers.CacheControl = new CacheControlHeaderValue { NoStore = true };
-
-                var response = await _httpClient.SendAsync(request, cancel);
-                
-                statusCode = (int)response.StatusCode;
+                statusCode = (int) response.StatusCode;
                 contentType = response.Content.Headers.ContentType?.ToString();
                 contentLength = response.Content.Headers.ContentLength;
 
@@ -108,7 +108,8 @@ namespace Seq.Input.HealthCheck
             var level = outcome == OutcomeFailed ? "Error" :
                 data == null && _extractor != null ? "Warning" :
                 null;
-
+            _redirectedUrls.TryPeek(out var topRedirect);
+            var finalUrl = topRedirect?.RedirectUri.ToString();
             return new HealthCheckResult(
                 utcTimestamp,
                 _title,
@@ -124,7 +125,74 @@ namespace Seq.Input.HealthCheck
                 initialContent,
                 exception,
                 data,
-                _targetUrl == probedUrl ? null : probedUrl);
+                _targetUrl == probedUrl ? null : probedUrl,
+                redirectCount: _redirectedUrls.Count,
+                finalUrl: finalUrl);
+        }
+
+        private void AddHeadersToRequest(HttpRequestMessage request, string probeId)
+        {
+            request.Headers.Add(CorrelationHeaderId, probeId);
+            foreach (var (name, value) in _headers)
+            {
+                // This will throw if a header is duplicated (better for the user to detect this configuration problem).
+                request.Headers.Add(name, value);
+            }
+
+            if (_bypassHttpCaching)
+                request.Headers.CacheControl = new CacheControlHeaderValue {NoStore = true};
+        }
+
+        private async Task<HttpResponseMessage> MakeAndFollowRequest(CancellationToken cancel, string requestUri, string correlationId,
+            Stack<Redirect> previousRedirects)
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
+            // include initial headers on every redirect
+            // todo: Should any response headers included in future requests?
+            AddHeadersToRequest(request, correlationId);
+
+            var response = await _httpClient.SendAsync(request, cancel);
+            var statusCode = (int) response.StatusCode;
+            var exceededRedirectCount = previousRedirects.Count > MaxRedirectCount;
+            var responseStatusCodeWas300 = statusCode is >= 300 and <= 399;
+
+            if (_shouldFollowRedirects && responseStatusCodeWas300 && !exceededRedirectCount)
+            {
+                var locationHeader = response.Headers.Location;
+                // https://httpwg.org/specs/rfc9110.html#status.3xx
+                // Redirects that indicate this resource might be available at a different URI:
+                // 301 (Moved Permanently),
+                // 302 (Found),
+                // 303 (See Other),
+                // 307 (Temporary Redirect),
+                // 308 (Permanent Redirect)
+                if (locationHeader is not null)
+                {
+                    // todo: do we want to log the full stack of redirects that occured anywhere?
+                    previousRedirects.Push(new Redirect(request.RequestUri, statusCode, locationHeader));
+                    // todo: Should we rely on the server to include the resource as well as query parameters...
+                    // or should we analyze and ensure that they're included?
+                    var newUri = locationHeader.ToString();
+                    return await MakeAndFollowRequest(cancel, newUri, correlationId, previousRedirects);
+                }
+
+                // todo what to do if there's not a `location` header? as in 300 and 304?
+                // https://httpwg.org/specs/rfc9110.html#status.3xx
+                // Redirection that offers a choice among matching resources capable of representing this resource,
+                // as in the 300 (Multiple Choices) status code.
+                // as in the 304 (Not Modified) status code.
+                else
+                {
+                    // todo: Should this be a warning or an exception?
+                    // todo: Should we destructure the Request & Response?
+                    _log.Warning(
+                        "Http Redirect Status Code {StatusCode} Received with No Location Header {Header} from response {@Response} during request {@Request}",
+                        statusCode,
+                        locationHeader, response, request);
+                }
+            }
+
+            return response;
         }
 
         // Either initial content, or extracted data

@@ -19,6 +19,7 @@ using System.Net.Http;
 using Seq.Apps;
 using Seq.Input.HealthCheck.Data;
 using Seq.Input.HealthCheck.Util;
+
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
@@ -39,26 +40,27 @@ namespace Seq.Input.HealthCheck
             InputType = SettingInputType.LongText)]
         public string TargetUrl { get; set; } = null!;
 
-        [SeqAppSetting(InputType = SettingInputType.Password, IsOptional = true, DisplayName = "Authentication Header",
-            HelpText = "An optional `Name: Value` header, stored as sensitive data, for authentication purposes.")]
-        public string? AuthenticationHeader { get; set; }
-        
-        [SeqAppSetting(InputType = SettingInputType.LongText, IsOptional = true, DisplayName = "Other Headers",
-            HelpText = "Additional headers to send with the request, one per line in `Name: Value` format.")]
-        public string? OtherHeaders { get; set; }
-        
         [SeqAppSetting(
             DisplayName = "Follow Redirects",
             IsOptional = true,
-            HelpText = "If selected, the HTTP Request will follow redirects. Defaults to false.")]
+            HelpText = "If selected, the HTTP Request will follow redirects. Defaults to false.",
+            InputType = SettingInputType.Checkbox)]
         public bool FollowRedirects { get; set; } = false;
+
+        [SeqAppSetting(InputType = SettingInputType.Password, IsOptional = true, DisplayName = "Authentication Header",
+            HelpText = "An optional `Name: Value` header, stored as sensitive data, for authentication purposes.")]
+        public string? AuthenticationHeader { get; set; }
+
+        [SeqAppSetting(InputType = SettingInputType.LongText, IsOptional = true, DisplayName = "Other Headers",
+            HelpText = "Additional headers to send with the request, one per line in `Name: Value` format.")]
+        public string? OtherHeaders { get; set; }
 
         [SeqAppSetting(
             DisplayName = "Bypass HTTP caching",
             IsOptional = true,
             HelpText = "If selected, the unique probe id will be appended to the target URL query string as " +
-                "`" + HttpHealthCheck.ProbeIdParameterName  + "`, in order to disable any " +
-                "intermediary HTTP caching. The `Cache-Control: no-store` header will also be sent.")]
+                       "`" + HttpHealthCheck.ProbeIdParameterName + "`, in order to disable any " +
+                       "intermediary HTTP caching. The `Cache-Control: no-store` header will also be sent.")]
         public bool BypassHttpCaching { get; set; }
 
         [SeqAppSetting(
@@ -75,7 +77,7 @@ namespace Seq.Input.HealthCheck
                        " on the resulting event. Use the special value `@Properties` to capture the whole " +
                        "response. The response must be UTF-8 `application/json` for this to be applied.")]
         public string? DataExtractionExpression { get; set; }
-        
+
         public void Start(TextWriter inputWriter)
         {
             _httpClient = HttpHealthCheckClient.Create();
@@ -94,7 +96,9 @@ namespace Seq.Input.HealthCheck
                     targetUrl,
                     HeaderSettingFormat.FromSettings(AuthenticationHeader, OtherHeaders),
                     extractor,
-                    BypassHttpCaching);
+                    BypassHttpCaching,
+                    Log,
+                    FollowRedirects);
 
                 _healthCheckTasks.Add(new HealthCheckTask(
                     healthCheck,
