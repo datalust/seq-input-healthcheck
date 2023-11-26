@@ -78,7 +78,7 @@ namespace Seq.Input.HealthCheck
         
         public void Start(TextWriter inputWriter)
         {
-            _httpClient = HttpHealthCheckClient.Create(FollowRedirects);
+            _httpClient = HttpHealthCheckClient.Create();
             var reporter = new HealthCheckReporter(inputWriter);
 
             JsonDataExtractor? extractor = null;
