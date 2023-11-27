@@ -43,7 +43,7 @@ namespace Seq.Input.HealthCheck
         [SeqAppSetting(
             DisplayName = "Follow Redirects",
             IsOptional = true,
-            HelpText = "If selected, the HTTP Request will follow redirects. Defaults to false.",
+            HelpText = "If selected, the HTTP request will follow redirects. By default, health checks that trigger redirects will fail.",
             InputType = SettingInputType.Checkbox)]
         public bool FollowRedirects { get; set; } = false;
 
