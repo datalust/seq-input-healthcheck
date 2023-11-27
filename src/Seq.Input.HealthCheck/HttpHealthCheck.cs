@@ -38,7 +38,7 @@ namespace Seq.Input.HealthCheck
         readonly JsonDataExtractor? _extractor;
         readonly bool _bypassHttpCaching;
         readonly HttpClient _httpClient;
-        bool _shouldFollowRedirects;
+        readonly bool _shouldFollowRedirects;
         readonly byte[] _buffer = new byte[2048];
 
         public const string ProbeIdParameterName = "__probe";
