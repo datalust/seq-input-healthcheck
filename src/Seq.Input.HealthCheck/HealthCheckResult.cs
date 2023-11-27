@@ -33,9 +33,7 @@ namespace Seq.Input.HealthCheck
         [JsonProperty("@mt")]
         public string MessageTemplate { get; } =
             "Health check {Method} {TargetUrl} {Outcome} with status code {StatusCode} in {Elapsed:0.000} ms";
-
-        private const string _messageTemplateForRedirect = "Health check {Method} {TargetUrl} redirected {RedirectCount} time(s) to {FinalUrl} {Outcome} with status code {StatusCode} in {Elapsed:0.000} ms";
-
+        
         [JsonProperty("@l", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string? Level { get; }
 
@@ -104,8 +102,6 @@ namespace Seq.Input.HealthCheck
             ProbedUrl = probedUrl;
             RedirectCount = redirectCount;
             FinalUrl = finalUrl;
-            // todo: Is this the best way to change the message template?
-            if (redirectCount > 0) MessageTemplate = _messageTemplateForRedirect;
         }
     }
 }
