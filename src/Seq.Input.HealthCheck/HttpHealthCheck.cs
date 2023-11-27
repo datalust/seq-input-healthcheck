@@ -46,7 +46,7 @@ namespace Seq.Input.HealthCheck
         public const int MaxRedirectCount = 10;
 
         static readonly UTF8Encoding ForgivingEncoding = new(false, false);
-        private readonly ILogger _log;
+        readonly ILogger _log;
         const int InitialContentChars = 16;
         const string OutcomeSucceeded = "succeeded", OutcomeFailed = "failed";
 
