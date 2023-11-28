@@ -76,7 +76,6 @@ namespace Seq.Input.HealthCheck
 
             var probeId = Nonce.Generate(12);
 
-            // todo: Does bypassing the _httpCaching have any impact with regard to following redirects?
             var probedUrl = _bypassHttpCaching ? UrlHelper.AppendParameter(_targetUrl, ProbeIdParameterName, probeId) : _targetUrl;
             var utcTimestamp = DateTime.UtcNow;
             var sw = Stopwatch.StartNew();
