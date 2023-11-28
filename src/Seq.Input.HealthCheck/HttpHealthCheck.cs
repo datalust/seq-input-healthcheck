@@ -71,19 +71,20 @@ namespace Seq.Input.HealthCheck
             long? contentLength = null;
             string? initialContent = null;
             JToken? data = null;
-            string? finalUrl = null;
-            int count = 0;
+            var redirectCount = 0;
 
             var probeId = Nonce.Generate(12);
-
             var probedUrl = _bypassHttpCaching ? UrlHelper.AppendParameter(_targetUrl, ProbeIdParameterName, probeId) : _targetUrl;
+            
+            var finalUrl = probedUrl;
+            
             var utcTimestamp = DateTime.UtcNow;
             var sw = Stopwatch.StartNew();
 
             try
             {
                 HttpResponseMessage response;
-                (response, finalUrl, count) = await MakeAndFollowRequest(cancel, probedUrl, probeId);
+                (response, finalUrl, redirectCount) = await SendRequest(cancel, probedUrl, probeId);
 
                 statusCode = (int) response.StatusCode;
                 contentType = response.Content.Headers.ContentType?.ToString();
@@ -121,9 +122,9 @@ namespace Seq.Input.HealthCheck
                 initialContent,
                 exception,
                 data,
-                _targetUrl == probedUrl ? null : probedUrl,
-                redirectCount: count,
-                finalUrl: finalUrl);
+                probedUrl == _targetUrl ? null : probedUrl,
+                _shouldFollowRedirects ? redirectCount : null,
+                redirectCount > 0 ? finalUrl : null);
         }
 
         void AddHeadersToRequest(HttpRequestMessage request, string probeId)
@@ -139,9 +140,9 @@ namespace Seq.Input.HealthCheck
                 request.Headers.CacheControl = new CacheControlHeaderValue {NoStore = true};
         }
 
-        async Task<(HttpResponseMessage, string?, int)> MakeAndFollowRequest(CancellationToken cancel, string requestUri, string correlationId)
+        async Task<(HttpResponseMessage, string, int)> SendRequest(CancellationToken cancel, string requestUri, string correlationId)
         {
-            HttpResponseMessage response = new HttpResponseMessage();
+            HttpResponseMessage response = null!;
             var totalRedirects = 0;
 
             for (int i = 0; i <= MaxRedirectCount; i++)

@@ -22,7 +22,7 @@ namespace Seq.Input.HealthCheck
     {
         readonly TextWriter _output;
         readonly JsonSerializer _serializer = JsonSerializer.Create();
-        readonly object _sync = new object();
+        readonly object _sync = new();
 
         public HealthCheckReporter(TextWriter output)
         {
