@@ -97,7 +97,6 @@ namespace Seq.Input.HealthCheck
                     HeaderSettingFormat.FromSettings(AuthenticationHeader, OtherHeaders),
                     extractor,
                     BypassHttpCaching,
-                    Log,
                     FollowRedirects);
 
                 _healthCheckTasks.Add(new HealthCheckTask(

@@ -46,12 +46,11 @@ namespace Seq.Input.HealthCheck
         public const int MaxRedirectCount = 10;
 
         static readonly UTF8Encoding ForgivingEncoding = new(false, false);
-        readonly ILogger _log;
         const int InitialContentChars = 16;
         const string OutcomeSucceeded = "succeeded", OutcomeFailed = "failed";
 
         public HttpHealthCheck(HttpClient httpClient, string title, string targetUrl, List<(string, string)> headers, JsonDataExtractor? extractor,
-            bool bypassHttpCaching, ILogger log, bool shouldFollowRedirects = false)
+            bool bypassHttpCaching,  bool shouldFollowRedirects = false)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _title = title ?? throw new ArgumentNullException(nameof(title));
@@ -60,8 +59,6 @@ namespace Seq.Input.HealthCheck
             _extractor = extractor;
             _bypassHttpCaching = bypassHttpCaching;
             _shouldFollowRedirects = shouldFollowRedirects;
-            // todo: Is this the best way to inject logging?
-            _log = log;
         }
 
         public async Task<HealthCheckResult> CheckNow(CancellationToken cancel)
@@ -174,21 +171,6 @@ namespace Seq.Input.HealthCheck
                     // or should we analyze and ensure that they're included?
                     var newUri = locationHeader.ToString();
                     return await MakeAndFollowRequest(cancel, newUri, correlationId, previousRedirects);
-                }
-
-                // todo what to do if there's not a `location` header? as in 300 and 304?
-                // https://httpwg.org/specs/rfc9110.html#status.3xx
-                // Redirection that offers a choice among matching resources capable of representing this resource,
-                // as in the 300 (Multiple Choices) status code.
-                // as in the 304 (Not Modified) status code.
-                else
-                {
-                    // todo: Should this be a warning or an exception?
-                    // todo: Should we destructure the Request & Response?
-                    _log.Warning(
-                        "Http Redirect Status Code {StatusCode} Received with No Location Header {Header} from response {@Response} during request {@Request}",
-                        statusCode,
-                        locationHeader, response, request);
                 }
             }
 
