@@ -126,7 +126,7 @@ namespace Seq.Input.HealthCheck
                 finalUrl: finalUrl);
         }
 
-        private void AddHeadersToRequest(HttpRequestMessage request, string probeId)
+        void AddHeadersToRequest(HttpRequestMessage request, string probeId)
         {
             request.Headers.Add(CorrelationHeaderId, probeId);
             foreach (var (name, value) in _headers)
@@ -138,8 +138,7 @@ namespace Seq.Input.HealthCheck
             if (_bypassHttpCaching)
                 request.Headers.CacheControl = new CacheControlHeaderValue {NoStore = true};
         }
-
-        private async Task<HttpResponseMessage> MakeAndFollowRequest(CancellationToken cancel, string requestUri, string correlationId,
+        async Task<HttpResponseMessage> MakeAndFollowRequest(CancellationToken cancel, string requestUri, string correlationId,
             Stack<Redirect> previousRedirects)
         {
             var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
