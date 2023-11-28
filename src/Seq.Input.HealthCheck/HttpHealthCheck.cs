@@ -50,7 +50,7 @@ namespace Seq.Input.HealthCheck
         const string OutcomeSucceeded = "succeeded", OutcomeFailed = "failed";
 
         public HttpHealthCheck(HttpClient httpClient, string title, string targetUrl, List<(string, string)> headers, JsonDataExtractor? extractor,
-            bool bypassHttpCaching,  bool shouldFollowRedirects = false)
+            bool bypassHttpCaching, bool shouldFollowRedirects = false)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _title = title ?? throw new ArgumentNullException(nameof(title));
@@ -71,8 +71,8 @@ namespace Seq.Input.HealthCheck
             long? contentLength = null;
             string? initialContent = null;
             JToken? data = null;
-            Stack<Redirect> _redirectedUrls = new();
-
+            string? finalUrl = null;
+            int count = 0;
 
             var probeId = Nonce.Generate(12);
 
@@ -82,8 +82,9 @@ namespace Seq.Input.HealthCheck
 
             try
             {
-                var response = await MakeAndFollowRequest(cancel, probedUrl, probeId, _redirectedUrls);
-
+                HttpResponseMessage response;
+                (response, finalUrl, count) = await MakeAndFollowRequest(cancel, probedUrl, probeId);
+          
                 statusCode = (int) response.StatusCode;
                 contentType = response.Content.Headers.ContentType?.ToString();
                 contentLength = response.Content.Headers.ContentLength;
@@ -104,8 +105,7 @@ namespace Seq.Input.HealthCheck
             var level = outcome == OutcomeFailed ? "Error" :
                 data == null && _extractor != null ? "Warning" :
                 null;
-            _redirectedUrls.TryPeek(out var topRedirect);
-            var finalUrl = topRedirect?.RedirectUri.ToString();
+
             return new HealthCheckResult(
                 utcTimestamp,
                 _title,
@@ -122,7 +122,7 @@ namespace Seq.Input.HealthCheck
                 exception,
                 data,
                 _targetUrl == probedUrl ? null : probedUrl,
-                redirectCount: _redirectedUrls.Count,
+                redirectCount: count,
                 finalUrl: finalUrl);
         }
 
@@ -138,40 +138,35 @@ namespace Seq.Input.HealthCheck
             if (_bypassHttpCaching)
                 request.Headers.CacheControl = new CacheControlHeaderValue {NoStore = true};
         }
-        async Task<HttpResponseMessage> MakeAndFollowRequest(CancellationToken cancel, string requestUri, string correlationId,
-            Stack<Redirect> previousRedirects)
+
+        async Task<(HttpResponseMessage, string?, int)> MakeAndFollowRequest(CancellationToken cancel, string requestUri, string correlationId)
         {
-            var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
-            // include initial headers on every redirect
-            // todo: Should any response headers included in future requests?
-            AddHeadersToRequest(request, correlationId);
+            HttpResponseMessage response = new HttpResponseMessage();
+            var totalRedirects = 0;
 
-            var response = await _httpClient.SendAsync(request, cancel);
-            var statusCode = (int) response.StatusCode;
-            var exceededRedirectCount = previousRedirects.Count > MaxRedirectCount;
-            var responseStatusCodeWas300 = statusCode is >= 300 and <= 399;
-
-            if (_shouldFollowRedirects && responseStatusCodeWas300 && !exceededRedirectCount)
+            for (int i = 0; i <= MaxRedirectCount; i++)
             {
-                var locationHeader = response.Headers.Location;
-                // https://httpwg.org/specs/rfc9110.html#status.3xx
-                // Redirects that indicate this resource might be available at a different URI:
-                // 301 (Moved Permanently),
-                // 302 (Found),
-                // 303 (See Other),
-                // 307 (Temporary Redirect),
-                // 308 (Permanent Redirect)
-                if (locationHeader is not null)
+                var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
+                AddHeadersToRequest(request, correlationId);
+
+                response = await _httpClient.SendAsync(request, cancel);
+                var statusCode = (int) response.StatusCode;
+                
+                if (_shouldFollowRedirects && statusCode is >= 300 and <= 399)
                 {
-                    previousRedirects.Push(new Redirect(request.RequestUri, statusCode, locationHeader));
-                    // todo: Should we rely on the server to include the resource as well as query parameters...
-                    // or should we analyze and ensure that they're included?
-                    var newUri = locationHeader.ToString();
-                    return await MakeAndFollowRequest(cancel, newUri, correlationId, previousRedirects);
+                    var locationHeader = response.Headers.Location;
+                    if (locationHeader is not null)
+                    {
+                        requestUri = locationHeader.ToString();
+                        continue;
+                    }
                 }
+
+                totalRedirects = i;
+                break;
             }
 
-            return response;
+            return (response, requestUri, totalRedirects);
         }
 
         // Either initial content, or extracted data
