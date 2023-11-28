@@ -84,7 +84,7 @@ namespace Seq.Input.HealthCheck
             {
                 HttpResponseMessage response;
                 (response, finalUrl, count) = await MakeAndFollowRequest(cancel, probedUrl, probeId);
-          
+
                 statusCode = (int) response.StatusCode;
                 contentType = response.Content.Headers.ContentType?.ToString();
                 contentLength = response.Content.Headers.ContentLength;
@@ -151,7 +151,7 @@ namespace Seq.Input.HealthCheck
 
                 response = await _httpClient.SendAsync(request, cancel);
                 var statusCode = (int) response.StatusCode;
-                
+
                 if (_shouldFollowRedirects && statusCode is >= 300 and <= 399)
                 {
                     var locationHeader = response.Headers.Location;
