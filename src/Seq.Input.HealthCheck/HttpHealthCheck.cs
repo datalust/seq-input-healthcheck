@@ -163,7 +163,6 @@ namespace Seq.Input.HealthCheck
                 // 308 (Permanent Redirect)
                 if (locationHeader is not null)
                 {
-                    // todo: do we want to log the full stack of redirects that occured anywhere?
                     previousRedirects.Push(new Redirect(request.RequestUri, statusCode, locationHeader));
                     // todo: Should we rely on the server to include the resource as well as query parameters...
                     // or should we analyze and ensure that they're included?
