@@ -24,9 +24,12 @@ using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using Seq.Input.HealthCheck.Data;
 using Seq.Input.HealthCheck.Util;
+using Serilog;
 
 namespace Seq.Input.HealthCheck
 {
+    record Redirect(Uri? RequestUri, int StatusCode, Uri RedirectUri);
+
     class HttpHealthCheck
     {
         readonly string _title;
@@ -35,15 +38,19 @@ namespace Seq.Input.HealthCheck
         readonly JsonDataExtractor? _extractor;
         readonly bool _bypassHttpCaching;
         readonly HttpClient _httpClient;
+        readonly bool _shouldFollowRedirects;
         readonly byte[] _buffer = new byte[2048];
 
         public const string ProbeIdParameterName = "__probe";
+        public const string CorrelationHeaderId = "X-Correlation-ID";
+        public const int MaxRedirectCount = 10;
 
         static readonly UTF8Encoding ForgivingEncoding = new(false, false);
         const int InitialContentChars = 16;
         const string OutcomeSucceeded = "succeeded", OutcomeFailed = "failed";
 
-        public HttpHealthCheck(HttpClient httpClient, string title, string targetUrl,  List<(string, string)> headers, JsonDataExtractor? extractor, bool bypassHttpCaching)
+        public HttpHealthCheck(HttpClient httpClient, string title, string targetUrl, List<(string, string)> headers, JsonDataExtractor? extractor,
+            bool bypassHttpCaching, bool shouldFollowRedirects = false)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _title = title ?? throw new ArgumentNullException(nameof(title));
@@ -51,8 +58,9 @@ namespace Seq.Input.HealthCheck
             _headers = headers;
             _extractor = extractor;
             _bypassHttpCaching = bypassHttpCaching;
+            _shouldFollowRedirects = shouldFollowRedirects;
         }
-        
+
         public async Task<HealthCheckResult> CheckNow(CancellationToken cancel)
         {
             string outcome;
@@ -63,32 +71,21 @@ namespace Seq.Input.HealthCheck
             long? contentLength = null;
             string? initialContent = null;
             JToken? data = null;
+            string? finalUrl = null;
+            int count = 0;
 
             var probeId = Nonce.Generate(12);
-            var probedUrl = _bypassHttpCaching ?
-                UrlHelper.AppendParameter(_targetUrl, ProbeIdParameterName, probeId) :
-                _targetUrl;
 
+            var probedUrl = _bypassHttpCaching ? UrlHelper.AppendParameter(_targetUrl, ProbeIdParameterName, probeId) : _targetUrl;
             var utcTimestamp = DateTime.UtcNow;
             var sw = Stopwatch.StartNew();
 
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, probedUrl);
-                request.Headers.Add("X-Correlation-ID", probeId);
+                HttpResponseMessage response;
+                (response, finalUrl, count) = await MakeAndFollowRequest(cancel, probedUrl, probeId);
 
-                foreach (var (name, value) in _headers)
-                {
-                    // This will throw if a header is duplicated (better for the user to detect this configuration problem).
-                    request.Headers.Add(name, value);
-                }
-
-                if (_bypassHttpCaching)
-                    request.Headers.CacheControl = new CacheControlHeaderValue { NoStore = true };
-
-                var response = await _httpClient.SendAsync(request, cancel);
-                
-                statusCode = (int)response.StatusCode;
+                statusCode = (int) response.StatusCode;
                 contentType = response.Content.Headers.ContentType?.ToString();
                 contentLength = response.Content.Headers.ContentLength;
 
@@ -124,7 +121,52 @@ namespace Seq.Input.HealthCheck
                 initialContent,
                 exception,
                 data,
-                _targetUrl == probedUrl ? null : probedUrl);
+                _targetUrl == probedUrl ? null : probedUrl,
+                redirectCount: count,
+                finalUrl: finalUrl);
+        }
+
+        void AddHeadersToRequest(HttpRequestMessage request, string probeId)
+        {
+            request.Headers.Add(CorrelationHeaderId, probeId);
+            foreach (var (name, value) in _headers)
+            {
+                // This will throw if a header is duplicated (better for the user to detect this configuration problem).
+                request.Headers.Add(name, value);
+            }
+
+            if (_bypassHttpCaching)
+                request.Headers.CacheControl = new CacheControlHeaderValue {NoStore = true};
+        }
+
+        async Task<(HttpResponseMessage, string?, int)> MakeAndFollowRequest(CancellationToken cancel, string requestUri, string correlationId)
+        {
+            HttpResponseMessage response = new HttpResponseMessage();
+            var totalRedirects = 0;
+
+            for (int i = 0; i <= MaxRedirectCount; i++)
+            {
+                var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
+                AddHeadersToRequest(request, correlationId);
+
+                response = await _httpClient.SendAsync(request, cancel);
+                var statusCode = (int) response.StatusCode;
+
+                if (_shouldFollowRedirects && statusCode is >= 300 and <= 399)
+                {
+                    var locationHeader = response.Headers.Location;
+                    if (locationHeader is not null)
+                    {
+                        requestUri = locationHeader.ToString();
+                        continue;
+                    }
+                }
+
+                totalRedirects = i;
+                break;
+            }
+
+            return (response, requestUri, totalRedirects);
         }
 
         // Either initial content, or extracted data
