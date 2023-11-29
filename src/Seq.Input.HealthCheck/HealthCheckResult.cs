@@ -49,17 +49,35 @@ namespace Seq.Input.HealthCheck
         public string? ContentType { get; }
         public long? ContentLength { get; }
         public string ProbeId { get; }
+
+        /// <summary>
+        /// If the probed URL differs from the target URL, e.g. due to cache-busting query string
+        /// parameters, this field will be set. Otherwise it can be assumed that the target URL was
+        /// used as-is.
+        /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public string? ProbedUrl { get; }
+        
+        /// <summary>
+        /// If the health check follows redirects, the number of redirects that were followed. Otherwise
+        /// this field is omitted.
+        /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public int? RedirectCount { get; set; }
+        
+        /// <summary>
+        /// If any redirects occurred, the final URL that was reached by following redirects. The status
+        /// code and other details reported for the check will always have come from the final URL, in
+        /// those cases.
+        /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string? FinalUrl { get; set; }
-        public int RedirectCount { get; set; }
 
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string? InitialContent { get; }
 
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public JToken? Data { get; }
-
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public string? ProbedUrl { get; }
 
         public HealthCheckResult(
             DateTime utcTimestamp,
@@ -77,7 +95,7 @@ namespace Seq.Input.HealthCheck
             Exception? exception,
             JToken? data,
             string? probedUrl,
-            int redirectCount,
+            int? redirectCount,
             string? finalUrl)
         {
             if (utcTimestamp.Kind != DateTimeKind.Utc)
