@@ -3,23 +3,23 @@ using System.Linq;
 using Seq.Input.HealthCheck.Util;
 using Xunit;
 
-namespace Seq.Input.HealthCheck.Tests.Util
-{
-    public class NonceTests
-    {
-        public static readonly IEnumerable<object[]> CharacterCounts = Enumerable.Range(0, 100).Select(n => new [] { (object)n });
+namespace Seq.Input.HealthCheck.Tests.Util;
 
-        [Theory]
-        [MemberData(nameof(CharacterCounts))]
-        public void NonceGeneratesCorrectCharacterCount(int count)
-        {
+public class NonceTests
+{
+    public static readonly IEnumerable<object[]> CharacterCounts = Enumerable.Range(0, 100).Select(n => new [] { (object)n });
+
+    [Theory]
+    [MemberData(nameof(CharacterCounts))]
+    public void NonceGeneratesCorrectCharacterCount(int count)
+    {
             var nonce = Nonce.Generate(count);
             Assert.Equal(count, nonce.Length);
         }
 
-        [Fact]
-        public void NonceIsSufficientlyRandom()
-        {
+    [Fact]
+    public void NonceIsSufficientlyRandom()
+    {
             var a = Nonce.Generate(8);
 
             // Not entirely scientific ;-)
@@ -29,5 +29,4 @@ namespace Seq.Input.HealthCheck.Tests.Util
                 Assert.NotEqual(a, b);
             }
         }
-    }
 }
