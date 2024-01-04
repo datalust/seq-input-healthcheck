@@ -17,33 +17,32 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 
-namespace Seq.Input.HealthCheck.Util
-{
-    static class Nonce
-    {
-        public static string Generate(int chars)
-        {
-            if (chars < 0) throw new ArgumentOutOfRangeException(nameof(chars));
-            return new string(GenerateChars(chars).ToArray());
-        }
+namespace Seq.Input.HealthCheck.Util;
 
-        static IEnumerable<char> GenerateChars(int count)
+static class Nonce
+{
+    public static string Generate(int chars)
+    {
+        if (chars < 0) throw new ArgumentOutOfRangeException(nameof(chars));
+        return new string(GenerateChars(chars).ToArray());
+    }
+
+    static IEnumerable<char> GenerateChars(int count)
+    {
+        var rem = count;
+        var buf = new byte[128];
+        using var rng = RandomNumberGenerator.Create();
+        while (rem > 0)
         {
-            var rem = count;
-            var buf = new byte[128];
-            using var rng = RandomNumberGenerator.Create();
-            while (rem > 0)
+            rng.GetBytes(buf);
+            var b64 = Convert.ToBase64String(buf);
+            for (var i = 0; i < b64.Length && rem > 0; ++i)
             {
-                rng.GetBytes(buf);
-                var b64 = Convert.ToBase64String(buf);
-                for (var i = 0; i < b64.Length && rem > 0; ++i)
+                var c = b64[i];
+                if (char.IsLetterOrDigit(c))
                 {
-                    var c = b64[i];
-                    if (char.IsLetterOrDigit(c))
-                    {
-                        yield return c;
-                        rem--;
-                    }
+                    yield return c;
+                    rem--;
                 }
             }
         }

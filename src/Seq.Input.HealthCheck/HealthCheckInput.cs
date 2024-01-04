@@ -19,106 +19,105 @@ using System.Net.Http;
 using Seq.Apps;
 using Seq.Input.HealthCheck.Data;
 using Seq.Input.HealthCheck.Util;
-
+// ReSharper disable UnusedType.Global
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 
-namespace Seq.Input.HealthCheck
+namespace Seq.Input.HealthCheck;
+
+[SeqApp("Health Check Input",
+    Description = "Periodically GET an HTTP resource and publish response metrics to Seq.")]
+public class HealthCheckInput : SeqApp, IPublishJson, IDisposable
 {
-    [SeqApp("Health Check Input",
-        Description = "Periodically GET an HTTP resource and publish response metrics to Seq.")]
-    public class HealthCheckInput : SeqApp, IPublishJson, IDisposable
+    readonly List<HealthCheckTask> _healthCheckTasks = [];
+    HttpClient? _httpClient;
+
+    [SeqAppSetting(
+        DisplayName = "Target URLs",
+        HelpText = "The HTTP or HTTPS URL that the health check will periodically GET. Multiple URLs " +
+                   "can be checked; enter one per line.",
+        InputType = SettingInputType.LongText)]
+    public string TargetUrl { get; set; } = null!;
+
+    [SeqAppSetting(
+        DisplayName = "Follow Redirects",
+        IsOptional = true,
+        HelpText = "If selected, the HTTP request will follow redirects. By default, health checks that trigger redirects will fail.",
+        InputType = SettingInputType.Checkbox)]
+    public bool FollowRedirects { get; set; } = false;
+
+    [SeqAppSetting(InputType = SettingInputType.Password, IsOptional = true, DisplayName = "Authentication Header",
+        HelpText = "An optional `Name: Value` header, stored as sensitive data, for authentication purposes.")]
+    public string? AuthenticationHeader { get; set; }
+
+    [SeqAppSetting(InputType = SettingInputType.LongText, IsOptional = true, DisplayName = "Other Headers",
+        HelpText = "Additional headers to send with the request, one per line in `Name: Value` format.")]
+    public string? OtherHeaders { get; set; }
+
+    [SeqAppSetting(
+        DisplayName = "Bypass HTTP caching",
+        IsOptional = true,
+        HelpText = "If selected, the unique probe id will be appended to the target URL query string as " +
+                   "`" + HttpHealthCheck.ProbeIdParameterName + "`, in order to disable any " +
+                   "intermediary HTTP caching. The `Cache-Control: no-store` header will also be sent.")]
+    public bool BypassHttpCaching { get; set; }
+
+    [SeqAppSetting(
+        DisplayName = "Interval (seconds)",
+        IsOptional = true,
+        HelpText = "The time between checks; the default is 60.")]
+    public int IntervalSeconds { get; set; } = 60;
+
+    [SeqAppSetting(
+        DisplayName = "Data extraction expression",
+        IsOptional = true,
+        HelpText = "A Seq query language expression used to extract information from JSON responses. " +
+                   "The expression will be evaluated against the response to produce a `Data` property" +
+                   " on the resulting event. Use the special value `@Properties` to capture the whole " +
+                   "response. The response must be UTF-8 `application/json` for this to be applied.")]
+    public string? DataExtractionExpression { get; set; }
+
+    public void Start(TextWriter inputWriter)
     {
-        readonly List<HealthCheckTask> _healthCheckTasks = new List<HealthCheckTask>();
-        HttpClient? _httpClient;
+        _httpClient = HttpHealthCheckClient.Create();
+        var reporter = new HealthCheckReporter(inputWriter);
 
-        [SeqAppSetting(
-            DisplayName = "Target URLs",
-            HelpText = "The HTTP or HTTPS URL that the health check will periodically GET. Multiple URLs " +
-                       "can be checked; enter one per line.",
-            InputType = SettingInputType.LongText)]
-        public string TargetUrl { get; set; } = null!;
+        JsonDataExtractor? extractor = null;
+        if (!string.IsNullOrWhiteSpace(DataExtractionExpression))
+            extractor = new JsonDataExtractor(DataExtractionExpression);
 
-        [SeqAppSetting(
-            DisplayName = "Follow Redirects",
-            IsOptional = true,
-            HelpText = "If selected, the HTTP request will follow redirects. By default, health checks that trigger redirects will fail.",
-            InputType = SettingInputType.Checkbox)]
-        public bool FollowRedirects { get; set; } = false;
-
-        [SeqAppSetting(InputType = SettingInputType.Password, IsOptional = true, DisplayName = "Authentication Header",
-            HelpText = "An optional `Name: Value` header, stored as sensitive data, for authentication purposes.")]
-        public string? AuthenticationHeader { get; set; }
-
-        [SeqAppSetting(InputType = SettingInputType.LongText, IsOptional = true, DisplayName = "Other Headers",
-            HelpText = "Additional headers to send with the request, one per line in `Name: Value` format.")]
-        public string? OtherHeaders { get; set; }
-
-        [SeqAppSetting(
-            DisplayName = "Bypass HTTP caching",
-            IsOptional = true,
-            HelpText = "If selected, the unique probe id will be appended to the target URL query string as " +
-                       "`" + HttpHealthCheck.ProbeIdParameterName + "`, in order to disable any " +
-                       "intermediary HTTP caching. The `Cache-Control: no-store` header will also be sent.")]
-        public bool BypassHttpCaching { get; set; }
-
-        [SeqAppSetting(
-            DisplayName = "Interval (seconds)",
-            IsOptional = true,
-            HelpText = "The time between checks; the default is 60.")]
-        public int IntervalSeconds { get; set; } = 60;
-
-        [SeqAppSetting(
-            DisplayName = "Data extraction expression",
-            IsOptional = true,
-            HelpText = "A Seq query language expression used to extract information from JSON responses. " +
-                       "The expression will be evaluated against the response to produce a `Data` property" +
-                       " on the resulting event. Use the special value `@Properties` to capture the whole " +
-                       "response. The response must be UTF-8 `application/json` for this to be applied.")]
-        public string? DataExtractionExpression { get; set; }
-
-        public void Start(TextWriter inputWriter)
+        var targetUrls = TargetUrl.Split(new[] {'\r', '\n'}, StringSplitOptions.RemoveEmptyEntries);
+        foreach (var targetUrl in targetUrls)
         {
-            _httpClient = HttpHealthCheckClient.Create();
-            var reporter = new HealthCheckReporter(inputWriter);
+            var healthCheck = new HttpHealthCheck(
+                _httpClient,
+                App.Title,
+                targetUrl,
+                HeaderSettingFormat.FromSettings(AuthenticationHeader, OtherHeaders),
+                extractor,
+                BypassHttpCaching,
+                FollowRedirects);
 
-            JsonDataExtractor? extractor = null;
-            if (!string.IsNullOrWhiteSpace(DataExtractionExpression))
-                extractor = new JsonDataExtractor(DataExtractionExpression);
-
-            var targetUrls = TargetUrl.Split(new[] {'\r', '\n'}, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var targetUrl in targetUrls)
-            {
-                var healthCheck = new HttpHealthCheck(
-                    _httpClient,
-                    App.Title,
-                    targetUrl,
-                    HeaderSettingFormat.FromSettings(AuthenticationHeader, OtherHeaders),
-                    extractor,
-                    BypassHttpCaching,
-                    FollowRedirects);
-
-                _healthCheckTasks.Add(new HealthCheckTask(
-                    healthCheck,
-                    TimeSpan.FromSeconds(IntervalSeconds),
-                    reporter,
-                    Log));
-            }
+            _healthCheckTasks.Add(new HealthCheckTask(
+                healthCheck,
+                TimeSpan.FromSeconds(IntervalSeconds),
+                reporter,
+                Log));
         }
+    }
 
-        public void Stop()
-        {
-            foreach (var task in _healthCheckTasks)
-                task.Stop();
-        }
+    public void Stop()
+    {
+        foreach (var task in _healthCheckTasks)
+            task.Stop();
+    }
 
-        public void Dispose()
-        {
-            foreach (var task in _healthCheckTasks)
-                task.Dispose();
+    public void Dispose()
+    {
+        foreach (var task in _healthCheckTasks)
+            task.Dispose();
 
-            _httpClient?.Dispose();
-        }
+        _httpClient?.Dispose();
     }
 }

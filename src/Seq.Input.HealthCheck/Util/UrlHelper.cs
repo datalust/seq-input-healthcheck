@@ -16,20 +16,19 @@ using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.WebUtilities;
 
-namespace Seq.Input.HealthCheck.Util
-{
-    static class UrlHelper
-    {
-        public static string AppendParameter(string targetUrl, string name, string value)
-        {
-            if (targetUrl == null) throw new ArgumentNullException(nameof(targetUrl));
-            if (name == null) throw new ArgumentNullException(nameof(name));
-            if (value == null) throw new ArgumentNullException(nameof(value));
+namespace Seq.Input.HealthCheck.Util;
 
-            return QueryHelpers.AddQueryString(targetUrl, new Dictionary<string, string>
-            {
-                [name] = value
-            });
-        }
+static class UrlHelper
+{
+    public static string AppendParameter(string targetUrl, string name, string value)
+    {
+        if (targetUrl == null) throw new ArgumentNullException(nameof(targetUrl));
+        if (name == null) throw new ArgumentNullException(nameof(name));
+        if (value == null) throw new ArgumentNullException(nameof(value));
+
+        return QueryHelpers.AddQueryString(targetUrl, new Dictionary<string, string>
+        {
+            [name] = value
+        });
     }
 }

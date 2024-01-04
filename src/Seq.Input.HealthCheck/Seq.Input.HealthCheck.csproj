@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <VersionPrefix>2.1.0</VersionPrefix>
     <Description>Seq Health Check: periodically GET an HTTP resource and publish response metrics to Seq.</Description>
     <Authors>Datalust and Contributors</Authors>
@@ -13,7 +13,7 @@
     <TreatSpecificWarningsAsErrors />
     <PackageIcon>seq-input-healthcheck.png</PackageIcon>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <LangVersion>9</LangVersion>
+    <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
@@ -23,11 +23,11 @@
   
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="2.2.0" />
-    <PackageReference Include="newtonsoft.json" Version="13.0.1" />
-    <PackageReference Include="Seq.Apps" Version="2021.4.0" />
-    <PackageReference Include="Serilog" Version="2.10.0" />
-    <PackageReference Include="Serilog.Expressions" Version="3.3.0" />
-    <PackageReference Include="Serilog.Formatting.Compact.Reader" Version="1.0.5" />
+    <PackageReference Include="newtonsoft.json" Version="13.0.3" />
+    <PackageReference Include="Seq.Apps" Version="2023.4.0" />
+    <PackageReference Include="Serilog" Version="3.1.1" />
+    <PackageReference Include="Seq.Syntax" Version="1.0.0" />
+    <PackageReference Include="Serilog.Formatting.Compact.Reader" Version="3.0.0" />
   </ItemGroup>
 
   <ItemGroup>
