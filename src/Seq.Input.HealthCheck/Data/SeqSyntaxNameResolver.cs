@@ -2,7 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Serilog.Events;
-using Serilog.Expressions;
+using Seq.Syntax.Expressions;
 
 namespace Seq.Input.HealthCheck.Data
 {

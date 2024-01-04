@@ -4,7 +4,7 @@ using Newtonsoft.Json.Linq;
 using Seq.Input.HealthCheck.Data;
 using Xunit;
 
-namespace Seq.Input.HealthCheck.Tests
+namespace Seq.Input.HealthCheck.Tests.Data
 {
     public class JsonDataExtractorTests
     {

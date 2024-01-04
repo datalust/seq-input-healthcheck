@@ -4,7 +4,6 @@ using Xunit;
 
 namespace Seq.Input.HealthCheck.Tests.Settings
 {
-
     public class HeaderSettingFormatTests
     {
         [Theory]

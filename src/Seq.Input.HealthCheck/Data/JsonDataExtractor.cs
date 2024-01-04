@@ -16,7 +16,7 @@ using System;
 using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Serilog.Expressions;
+using Seq.Syntax.Expressions;
 using Serilog.Formatting.Compact.Reader;
 using Serilog.Formatting.Json;
 
