@@ -28,6 +28,16 @@ public class JsonDataExtractorTests
         var jv = (JValue)jo["Name"];
         Assert.Equal("Nick", jv.Value);
     }
+    
+    [Fact]
+    public void RecognizesHasFunction()
+    {
+        var json = JsonConvert.SerializeObject(new { Person = new { Name = "Nick" } });
+        var extractor = new JsonDataExtractor("Has(Person.Name)");
+        var value = extractor.ExtractData(new StringReader(json));
+        var jv = Assert.IsType<JValue>(value);
+        Assert.Equal(true, jv.Value);
+    }
 
     [Fact]
     public void PropertiesBuiltInExtractsWholeDocument()
