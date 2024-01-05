@@ -18,7 +18,7 @@ using Microsoft.AspNetCore.WebUtilities;
 
 namespace Seq.Input.HealthCheck.Util;
 
-static class UrlHelper
+static class UriHelper
 {
     public static string AppendParameter(string targetUrl, string name, string value)
     {
@@ -30,5 +30,14 @@ static class UrlHelper
         {
             [name] = value
         });
+    }
+
+    public static string MakeAbsoluteLocation(string requestUri, string locationHeader)
+    {
+        var location = new Uri(locationHeader, UriKind.RelativeOrAbsolute);
+        if (location.IsAbsoluteUri) return locationHeader;
+
+        var baseUri = new Uri(requestUri, UriKind.Absolute);
+        return new Uri(baseUri, location).ToString();
     }
 }
