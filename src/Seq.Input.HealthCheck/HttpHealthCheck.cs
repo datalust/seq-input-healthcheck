@@ -71,7 +71,7 @@ class HttpHealthCheck
         var redirectCount = 0;
 
         var probeId = Nonce.Generate(12);
-        var probedUrl = _bypassHttpCaching ? UrlHelper.AppendParameter(_targetUrl, ProbeIdParameterName, probeId) : _targetUrl;
+        var probedUrl = _bypassHttpCaching ? UriHelper.AppendParameter(_targetUrl, ProbeIdParameterName, probeId) : _targetUrl;
             
         var finalUrl = probedUrl;
             
@@ -80,7 +80,7 @@ class HttpHealthCheck
 
         try
         {
-            (var response, finalUrl, redirectCount) = await SendRequest(cancel, probedUrl, probeId);
+            (var response, finalUrl, redirectCount) = await SendRequest(probedUrl, probeId, cancel);
 
             statusCode = (int) response.StatusCode;
             contentType = response.Content.Headers.ContentType?.ToString();
@@ -136,12 +136,12 @@ class HttpHealthCheck
             request.Headers.CacheControl = new CacheControlHeaderValue {NoStore = true};
     }
 
-    async Task<(HttpResponseMessage, string, int)> SendRequest(CancellationToken cancel, string requestUri, string correlationId)
+    async Task<(HttpResponseMessage, string, int)> SendRequest(string requestUri, string correlationId, CancellationToken cancel)
     {
         HttpResponseMessage response = null!;
         var totalRedirects = 0;
 
-        for (int i = 0; i <= MaxRedirectCount; i++)
+        for (var i = 0; i <= MaxRedirectCount; i++)
         {
             var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
             AddHeadersToRequest(request, correlationId);
@@ -149,12 +149,12 @@ class HttpHealthCheck
             response = await _httpClient.SendAsync(request, cancel);
             var statusCode = (int) response.StatusCode;
 
-            if (_shouldFollowRedirects && statusCode is >= 300 and <= 399)
+            if (_shouldFollowRedirects && statusCode is >= 300 and < 400)
             {
                 var locationHeader = response.Headers.Location;
                 if (locationHeader is not null)
                 {
-                    requestUri = locationHeader.ToString();
+                    requestUri = UriHelper.MakeAbsoluteLocation(requestUri, locationHeader.ToString());
                     continue;
                 }
             }
