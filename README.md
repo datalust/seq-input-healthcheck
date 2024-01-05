@@ -6,7 +6,7 @@ Periodically GET an HTTP resource and write response metrics to Seq. These can t
 
 ### Getting started
 
-1. The app requires Seq 5.1 or newer
+1. The app requires Seq 2020.4 or newer
 2. Navigate to _Settings_ > _Apps_ and select _Install from NuGet_
 3. Install the app with package id _Seq.Input.HealthCheck_
 4. Back on the _Apps_ screen, choose _Add Instance_
@@ -16,4 +16,3 @@ Periodically GET an HTTP resource and write response metrics to Seq. These can t
    - if the URL is an HTTPS URL, the Seq server must trust the SSL certificate used by the server
    - the response will be fully downloaded on every check, so ideally the resource won't be more than a few kB
 7. Enter a probing interval in seconds; each event is stored internally in Seq, so be aware that shorter intervals will consume more space
-
