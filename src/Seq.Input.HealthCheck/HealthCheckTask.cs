@@ -24,12 +24,12 @@ class HealthCheckTask : IDisposable
     readonly CancellationTokenSource _cancel = new();
     readonly Task _healthCheckTask;
 
-    public HealthCheckTask(HttpHealthCheck healthCheck, TimeSpan interval, HealthCheckReporter reporter, ILogger diagnosticLog)
+    public HealthCheckTask(HttpHealthCheck healthCheck, TimeSpan interval, HealthCheckReporter reporter, ILogger diagnosticLog, TimeSpan startDelay)
     {
         if (healthCheck == null) throw new ArgumentNullException(nameof(healthCheck));
         if (reporter == null) throw new ArgumentNullException(nameof(reporter));
 
-        _healthCheckTask = Task.Run(() => Run(healthCheck, interval, reporter, diagnosticLog, _cancel.Token), _cancel.Token);
+        _healthCheckTask = Task.Run(() => Run(healthCheck, interval, reporter, diagnosticLog, _cancel.Token, startDelay), _cancel.Token);
     }
 
     static async Task Run(
@@ -37,10 +37,13 @@ class HealthCheckTask : IDisposable
         TimeSpan interval, 
         HealthCheckReporter reporter, 
         ILogger diagnosticLog,
-        CancellationToken cancel)
+        CancellationToken cancel,
+        TimeSpan startDelay)
     {
         try
         {
+            await Task.Delay(startDelay, cancel);
+            
             while (!cancel.IsCancellationRequested)
             {
                 var result = await healthCheck.CheckNow(cancel);
