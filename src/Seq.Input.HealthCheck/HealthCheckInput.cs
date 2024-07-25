@@ -111,7 +111,7 @@ public class HealthCheckInput : SeqApp, IPublishJson, IDisposable
             _healthCheckTasks.Add(new HealthCheckTask(
                 healthCheck,
                 TimeSpan.FromSeconds(IntervalSeconds),
-                TimeSpan.FromSeconds(JitterSeconds),
+                JitterSeconds == 0 ? TimeSpan.Zero : TimeSpan.FromMilliseconds(random.Next(0, JitterSeconds * 1000)),
                 reporter,
                 Log));
         }
