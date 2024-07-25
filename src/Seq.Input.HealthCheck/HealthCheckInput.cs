@@ -70,6 +70,13 @@ public class HealthCheckInput : SeqApp, IPublishJson, IDisposable
     public int IntervalSeconds { get; set; } = 60;
 
     [SeqAppSetting(
+        DisplayName = "Jitter (seconds)",
+        IsOptional = true,
+        HelpText = "Adds a random amount of jitter to the running of the first check, to prevent all health checks " +
+                   "from occurring simultaneously; the default is 0.")]
+    public int JitterSeconds { get; set; } = 0;
+
+    [SeqAppSetting(
         DisplayName = "Data extraction expression",
         IsOptional = true,
         HelpText = "A Seq query language expression used to extract information from JSON responses. " +
@@ -87,6 +94,8 @@ public class HealthCheckInput : SeqApp, IPublishJson, IDisposable
         if (!string.IsNullOrWhiteSpace(DataExtractionExpression))
             extractor = new JsonDataExtractor(DataExtractionExpression);
 
+        var random = new Random();
+
         var targetUrls = TargetUrl.Split(new[] {'\r', '\n'}, StringSplitOptions.RemoveEmptyEntries);
         foreach (var targetUrl in targetUrls)
         {
@@ -102,6 +111,7 @@ public class HealthCheckInput : SeqApp, IPublishJson, IDisposable
             _healthCheckTasks.Add(new HealthCheckTask(
                 healthCheck,
                 TimeSpan.FromSeconds(IntervalSeconds),
+                TimeSpan.FromSeconds(JitterSeconds),
                 reporter,
                 Log));
         }
