@@ -42,7 +42,7 @@ class HealthCheckTask : IDisposable
     {
         try
         {
-            if (delayStart > TimeSpan.Zero) await Task.Delay((int) delayStart.TotalMilliseconds, cancel);
+            if (delayStart > TimeSpan.Zero) await Task.Delay(delayStart, cancel);
 
             while (!cancel.IsCancellationRequested)
             {
