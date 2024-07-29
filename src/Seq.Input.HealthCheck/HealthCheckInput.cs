@@ -103,7 +103,7 @@ public class HealthCheckInput : SeqApp, IPublishJson, IDisposable
 
             var delayStart = targetUrls.Length <= 1
                 ? TimeSpan.Zero
-                : TimeSpan.FromSeconds(((IntervalSeconds * 1000.0) / targetUrls.Length) * ix);
+                : TimeSpan.FromMilliseconds(((IntervalSeconds * 1000.0) / targetUrls.Length) * ix);
 
             _healthCheckTasks.Add(new HealthCheckTask(
                 healthCheck,
