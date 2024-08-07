@@ -15,6 +15,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using Seq.Apps;
 using Seq.Input.HealthCheck.Data;
@@ -88,7 +89,8 @@ public class HealthCheckInput : SeqApp, IPublishJson, IDisposable
             extractor = new JsonDataExtractor(DataExtractionExpression);
 
         var targetUrls = TargetUrl.Split(new[] {'\r', '\n'}, StringSplitOptions.RemoveEmptyEntries);
-        foreach (var targetUrl in targetUrls)
+
+        foreach (var (targetUrl, ix) in targetUrls.Select((t, i) => (t, i)))
         {
             var healthCheck = new HttpHealthCheck(
                 _httpClient,
@@ -99,9 +101,14 @@ public class HealthCheckInput : SeqApp, IPublishJson, IDisposable
                 BypassHttpCaching,
                 FollowRedirects);
 
+            var delayStart = targetUrls.Length <= 1
+                ? TimeSpan.Zero
+                : TimeSpan.FromMilliseconds(((IntervalSeconds * 1000.0) / targetUrls.Length) * ix);
+
             _healthCheckTasks.Add(new HealthCheckTask(
                 healthCheck,
                 TimeSpan.FromSeconds(IntervalSeconds),
+                delayStart,
                 reporter,
                 Log));
         }
